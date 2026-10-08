@@ -15,6 +15,8 @@ Govee Mac is an independent, open-source macOS app for controlling compatible Go
 
 This is an early community release. Device support varies by model and firmware; please help us build the [compatibility list](docs/COMPATIBILITY.md).
 
+![Simple native connection screen with Bluetooth, Wi-Fi, and demo actions](docs/screenshot-home.png)
+
 ![Govee Mac with prebuilt SwiftUI controls and clearly labeled virtual demo lights](docs/screenshot.png)
 
 ![Independent Top, Middle, and Bottom controls for a virtual H60B2 Tree lamp](docs/screenshot-heads.png)
@@ -86,7 +88,7 @@ Potential next steps include broader Bluetooth protocols, screen sync, groups, a
 
 ## Architecture
 
-`GoveeKit` contains Sendable value models, LAN/BLE packet codecs, and the legacy session cipher, with no UI or third-party dependencies. `GoveeMac` contains the SwiftUI app, shared observable store, CoreBluetooth service, and a serial-queue UDP transport. Its cards, buttons, switches, sliders, tabs, badges, alerts, and inputs come from [ShadKit](https://github.com/jasonkneen/ShadKit), a SwiftUI component library based on shadcn/ui. Navigation, system menus, sheets, and color picking use native macOS components. The app remains entirely Swift. Commands are serialized per light; color-picker and slider edits are debounced and BLE writes respect backpressure. Bluetooth state is queried after commands; session keys are kept only in memory and discarded at disconnect.
+`GoveeKit` contains Sendable value models, LAN/BLE packet codecs, and the legacy session cipher, with no UI or third-party dependencies. `GoveeMac` contains the SwiftUI app, shared observable store, CoreBluetooth service, and a serial-queue UDP transport. Its cards, buttons, switches, sliders, tabs, badges, alerts, and inputs come from [ShadKit](https://github.com/jasonkneen/ShadKit), a SwiftUI component library based on shadcn/ui. Navigation, empty states, system menus, sheets, and color picking use native macOS components. The app remains entirely Swift. Commands are serialized per light; color-picker and slider edits are debounced and BLE writes respect backpressure. Bluetooth state is queried after commands; session keys are kept only in memory and discarded at disconnect.
 
 ShadKit is pinned in `Package.swift` and `Package.resolved` to revision `6dbefdeb72a276708b7ca748c71ac166c0f4f17d`, which includes keyboard and accessibility support for its switches and sliders. Only its `ShadcnUI` product is linked. The standard neutral theme follows the system appearance. App screens compose these prebuilt components without app-defined control styles, card surfaces, or decorative shapes.
 

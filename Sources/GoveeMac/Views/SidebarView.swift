@@ -21,9 +21,7 @@ struct SidebarView: View {
             }.padding(Space.x4)
             List(selection: $store.selectedID) {
                 if store.devices.isEmpty {
-                    Section("Your lights") {
-                        Text("Your lights will appear here.").font(.callout).foregroundStyle(.secondary)
-                    }
+                    Section("Lights") { }
                 } else {
                     let favoriteLights = store.devices.filter { store.favorites.contains($0.id) }
                     if !favoriteLights.isEmpty {
