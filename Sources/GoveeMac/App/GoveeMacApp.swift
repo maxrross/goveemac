@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ShadcnUI
 
 @main
 struct GoveeMacApp: App {
@@ -10,11 +11,12 @@ struct GoveeMacApp: App {
     var body: some Scene {
         WindowGroup("Govee Mac", id: "main") {
             ContentView(store: store)
-                .tint(Brand.accent)
+                .shadcnTheme(glass: false)
                 .frame(minWidth: 840, minHeight: 660)
                 .task { await store.start() }
         }
         .defaultSize(width: 1080, height: 800)
+        .windowToolbarStyle(.unifiedCompact(showsTitle: false))
         .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .newItem) { }
@@ -34,7 +36,7 @@ struct GoveeMacApp: App {
                 Link("Setup & Compatibility", destination: Brand.repository.appendingPathComponent("blob/main/docs/COMPATIBILITY.md"))
             }
         }
-        Settings { SettingsView(store: store).tint(Brand.accent) }
+        Settings { SettingsView(store: store).shadcnSurface(glass: false) }
         MenuBarExtra("Govee Mac", systemImage: "lightbulb", isInserted: $showMenuBar) {
             MenuBarView(store: store)
         }

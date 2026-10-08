@@ -4,7 +4,7 @@ Welcome! Small, focused contributions are a great place to start. You do not nee
 
 ## Development
 
-Use macOS 14+, Xcode 16+, and Swift 6. There are no third-party package dependencies.
+Use macOS 14+, Xcode 16+, and Swift 6. SwiftPM resolves the pinned ShadKit UI dependency automatically; `GoveeKit` has no third-party dependencies.
 
 ```sh
 swift test
@@ -20,6 +20,7 @@ swift test
 - Add meaningful protocol regression tests for packet changes.
 - Check real hardware when you can. State the exact model, firmware, connection, and which commands worked. Never call a device supported based only on discovery.
 - Verify light and dark appearance and keyboard access for UI changes.
+- Compose app UI from ShadKit's `ShadcnUI` components and native macOS containers. Use the library's standard theme and spacing tokens; avoid bespoke control styles and card backgrounds.
 - Preserve MIT notices for adapted code. Use original icons and artwork or properly attributed assets.
 - Do not commit device identifiers, network captures, IPs from your home, API keys, or credentials.
 

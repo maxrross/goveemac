@@ -13,6 +13,5 @@ extension RGB {
 }
 
 enum Brand {
-    static let accent = Color(red: 0.08, green: 0.64, blue: 0.57)
     static let repository = URL(string: "https://github.com/maxrross/goveemac")!
 }

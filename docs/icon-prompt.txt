@@ -1,0 +1,12 @@
+Tool: built-in ImageGen
+
+Use case: precise-object-edit
+Asset type: macOS Dock icon for Govee Mac.
+
+Edit the supplied icon. Replace the central lightbulb completely with a recognizable standing FLOOR LAMP. Keep the existing charcoal rounded-square tile, its subtle raised bevel, upper-left soft lighting, transparent outer corners, and overall understated sculptural style unchanged.
+
+The new object is a beautiful minimal white floor lamp: a broad softly tapered lampshade at the top, a substantial straight vertical stem, and a low rounded oval weighted base at the bottom. Show the entire lamp, upright and centered. The shade should be clearly wider than the stem and read immediately as a lampshade. The silhouette must unmistakably be a lamp with a shade, stand, and base. Use a bold substantial stem so the icon reads well at small Dock sizes. The lamp occupies roughly 65–70% of the tile height, with generous balanced padding and a broad shade about 45% of the tile width.
+
+Match the user's other icons through smooth sculpted matte-white surfaces, softly rounded edges, white front faces with very restrained neutral-gray depth, a gentle cast shadow onto the tile, and subtle three-dimensional form. Front-facing icon composition with a small amount of dimensional perspective on the shade and oval base. This is a polished stylized app symbol, not a room scene or product photograph.
+
+Keep the palette white, black, and neutral gray. The underside of the shade can have a very subtle soft white light. No lightbulb shape, no exposed bulb, no filament, no circular bulb outline, no text, no logos, no extra objects, no decorative rays, no sparkles, no neon glow, no chrome. Preserve genuine transparency outside the single rounded-square tile. Deliver one square app icon.

@@ -1,108 +1,116 @@
+import AppKit
 import SwiftUI
 import GoveeKit
+import ShadcnUI
 
 struct LightControlsView: View {
     let store: LightStore
     let device: LightDevice
     @State private var brightness = 100.0
     @State private var temperature = 4000.0
-    @State private var editingBrightness = false
-    @State private var editingTemperature = false
+    @GestureState private var editingBrightness = false
+    @GestureState private var editingTemperature = false
     @State private var colorMode = "Color"
-    @State private var pickerColor = Brand.accent
+    @State private var pickerColor = Color.white
     @State private var customHex = ""
-    @FocusState private var editingHex: Bool
+    @State private var hexEdited = false
 
     private let swatches: [RGB] = [RGB(255, 86, 76), RGB(255, 167, 64), RGB(250, 218, 82), RGB(73, 200, 133), RGB(40, 185, 205), RGB(68, 132, 250), RGB(165, 104, 250), RGB(247, 119, 191)]
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 22) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("Power", systemImage: "power").font(.headline)
-                        Text(device.hasKnownState ? (device.state.isOn ? "Let there be light." : "Ready when you are.") : "Choose a power state.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if device.hasKnownState {
-                        Toggle("Power", isOn: Binding(get: { device.state.isOn }, set: { store.send(.power($0), to: device.id) }))
-                            .toggleStyle(.switch).labelsHidden().accessibilityLabel("Light power")
-                            .disabled(store.busyIDs.contains(device.id))
-                    } else {
-                        Button("Turn on") { store.send(.power(true), to: device.id) }.buttonStyle(.borderedProminent)
-                        Button("Off") { store.send(.power(false), to: device.id) }
-                    }
+        HStack(alignment: .top, spacing: Space.x4) {
+            ShadcnCard {
+                ShadcnCardHeader {
+                    ShadcnCardTitle("Power & brightness")
                 }
-                Divider()
-                HStack {
-                    Label("Brightness", systemImage: "sun.max").font(.headline)
-                    Spacer()
-                    Text("\(Int(brightness))%").font(.system(size: 22, weight: .medium, design: .rounded)).monospacedDigit()
-                }
-                Slider(value: $brightness, in: 1...100) { editing in
-                    editingBrightness = editing
-                    if !editing { store.send(.brightness(Int(brightness.rounded())), to: device.id) }
-                }.accessibilityLabel("Brightness")
-                HStack {
-                    Text("Subtle")
-                    Spacer()
-                    Text("Bright")
-                }.font(.caption2).foregroundStyle(.secondary)
-            }.surface().frame(maxWidth: .infinity)
-            VStack(alignment: .leading, spacing: 17) {
-                HStack {
-                    Label("Light", systemImage: "paintpalette").font(.headline)
-                    Spacer()
-                    if colorMode == "Color" {
-                        Text(RGB(color: pickerColor).hex).font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
-                    } else {
-                        Text("\(Int(temperature)) K").font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
-                    }
-                }
-                Picker("Light mode", selection: $colorMode) {
-                    Text("Color").tag("Color")
-                    if device.supportsTemperature { Text("White").tag("White") }
-                }.pickerStyle(.segmented).labelsHidden()
-                if colorMode == "Color" {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 8), spacing: 4) {
-                        ForEach(swatches, id: \.hex) { rgb in
-                            Button {
-                                pickerColor = rgb.swiftUIColor
-                                store.send(.color(rgb), to: device.id)
-                            } label: {
-                                Circle().fill(rgb.swiftUIColor).frame(width: 23, height: 23)
-                                    .overlay(Circle().strokeBorder(.primary.opacity(0.08)))
-                            }.buttonStyle(.plain).accessibilityLabel("Set color \(rgb.hex)").help(rgb.hex)
-                        }
-                    }.padding(.vertical, 3)
-                    ColorPicker("Custom color", selection: Binding(get: { pickerColor }, set: { color in
-                        pickerColor = color
-                        if !editingHex { customHex = RGB(color: color).hex }
-                        store.send(.color(RGB(color: color)), to: device.id, debounce: true)
-                    }), supportsOpacity: false)
+                ShadcnCardContent {
                     HStack {
-                        TextField("#24A5FF", text: $customHex)
-                            .font(.system(.body, design: .monospaced))
-                            .textFieldStyle(.roundedBorder)
-                            .accessibilityLabel("Custom hex color")
-                            .focused($editingHex)
-                            .onSubmit { applyCustomColor() }
-                        Button("Apply color") { applyCustomColor() }
-                            .disabled(RGB(hex: customHex) == nil || store.busyIDs.contains(device.id))
+                        Label("Power", systemImage: "power")
+                        Spacer()
+                        if device.hasKnownState {
+                            ShadcnSwitch(isOn: Binding(get: { device.state.isOn }, set: { store.send(.power($0), to: device.id) }))
+                                .accessibilityLabel("Light power")
+                                .disabled(store.busyIDs.contains(device.id))
+                        } else {
+                            ShadcnButtonGroup {
+                                ShadcnButton("On", size: .small) { store.send(.power(true), to: device.id) }
+                                ShadcnButton("Off", variant: .outline, size: .small) { store.send(.power(false), to: device.id) }
+                            }.disabled(store.busyIDs.contains(device.id))
+                        }
                     }
-                    Text(device.supportsTemperature ? "Pick a favorite, or find your own." : "Color control · white temperature requires Wi-Fi.")
-                        .font(.caption2).foregroundStyle(.secondary)
-                } else {
-                    Slider(value: $temperature, in: 2000...9000) { editing in
-                        editingTemperature = editing
-                        if !editing { store.send(.temperature(Int((temperature / 100).rounded()) * 100), to: device.id) }
-                    }.accessibilityLabel("White temperature")
-                    HStack { Text("Warm · 2000 K"); Spacer(); Text("Cool · 9000 K") }.font(.caption2).foregroundStyle(.secondary)
-                    Button("Apply white") { store.send(.temperature(Int(temperature)), to: device.id) }
+                    ShadcnSeparator()
+                    HStack {
+                        Label("Brightness", systemImage: "sun.max")
+                        Spacer()
+                        ShadcnBadge("\(Int(brightness))%", variant: .secondary)
+                    }
+                    ShadcnSlider(value: Binding(get: { brightness }, set: {
+                        brightness = $0
+                        store.send(.brightness(Int($0.rounded())), to: device.id, debounce: true)
+                    }), in: 1...100, step: 1)
+                        .accessibilityLabel("Brightness")
+                        .accessibilityValue("\(Int(brightness)) percent")
+                        .simultaneousGesture(DragGesture(minimumDistance: 0).updating($editingBrightness) { _, editing, _ in editing = true })
+                    HStack(spacing: Space.x2) {
+                        ForEach([25, 50, 75, 100], id: \.self) { value in
+                            ShadcnButton("\(value)%", variant: .outline, size: .small, fillsWidth: true) {
+                                brightness = Double(value)
+                                store.send(.brightness(value), to: device.id)
+                            }.accessibilityLabel("Set brightness to \(value) percent")
+                        }
+                    }
+                }.frame(maxHeight: .infinity, alignment: .top)
+            }.frame(maxHeight: .infinity, alignment: .top)
+            ShadcnCard {
+                ShadcnCardHeader {
+                    ShadcnCardTitle(device.supportsTemperature ? "Color & white" : "Color")
                 }
-            }.surface().frame(maxWidth: .infinity)
-        }
+                ShadcnCardContent {
+                    ShadcnTabs(selection: $colorMode, items: device.supportsTemperature ? [("Color", "Color"), ("White", "White")] : [("Color", "Color")])
+                    if colorMode == "Color" {
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Space.x2), count: 4), spacing: Space.x2) {
+                            ForEach(swatches, id: \.hex) { rgb in
+                                ShadcnButton(variant: .outline, size: .iconSM, action: { setColor(rgb) }) {
+                                    Image(systemName: "circle.fill").foregroundStyle(rgb.swiftUIColor)
+                                }
+                                .accessibilityLabel("Set color \(rgb.hex)").help(rgb.hex)
+                            }
+                        }
+                        ColorPicker("Custom color", selection: Binding(get: { pickerColor }, set: {
+                            setColor(RGB(color: $0), debounce: true)
+                        }), supportsOpacity: false)
+                        HStack(spacing: Space.x2) {
+                            ShadcnTextField("#24A5FF", text: Binding(get: { customHex }, set: {
+                                customHex = $0; hexEdited = true
+                            }), onSubmit: applyCustomColor)
+                                .accessibilityLabel("Custom hex color")
+                            ShadcnButton("Apply", variant: .outline, size: .small, action: applyCustomColor)
+                                .accessibilityLabel("Apply custom color")
+                                .disabled(RGB(hex: customHex) == nil || store.busyIDs.contains(device.id))
+                        }
+                    } else {
+                        HStack {
+                            Text("Temperature")
+                            Spacer()
+                            ShadcnBadge("\(Int(temperature)) K", variant: .secondary)
+                        }
+                        ShadcnSlider(value: Binding(get: { temperature }, set: {
+                            temperature = $0
+                            store.send(.temperature(Int($0)), to: device.id, debounce: true)
+                        }), in: 2000...9000, step: 100)
+                            .accessibilityLabel("White temperature")
+                            .accessibilityValue("\(Int(temperature)) kelvin")
+                            .simultaneousGesture(DragGesture(minimumDistance: 0).updating($editingTemperature) { _, editing, _ in editing = true })
+                        HStack {
+                            Text("2000 K")
+                            Spacer()
+                            Text("9000 K")
+                        }.font(.caption).foregroundStyle(.secondary)
+                        ShadcnButton("Apply white", variant: .outline) { store.send(.temperature(Int(temperature)), to: device.id) }
+                    }
+                }.frame(maxHeight: .infinity, alignment: .top)
+            }.frame(maxHeight: .infinity, alignment: .top)
+        }.fixedSize(horizontal: false, vertical: true)
         .onAppear { synchronize() }
         .onChange(of: device.state) { _, _ in synchronize() }
     }
@@ -111,15 +119,22 @@ struct LightControlsView: View {
         if !editingBrightness { brightness = Double(device.state.brightness) }
         if !editingTemperature { temperature = Double(device.state.temperature > 0 ? device.state.temperature : 4000) }
         pickerColor = device.state.color.swiftUIColor
-        if !editingHex { customHex = device.state.color.hex }
+        if !hexEdited { customHex = device.state.color.hex }
         colorMode = device.state.temperature > 0 && device.supportsTemperature ? "White" : "Color"
     }
 
-    private func applyCustomColor() {
-        guard let rgb = RGB(hex: customHex) else { return }
-        editingHex = false
-        customHex = rgb.hex
+    private func setColor(_ rgb: RGB, debounce: Bool = false) {
+        // ShadKit preserves an active field editor; end editing before
+        // replacing its draft with a chosen color.
+        NSApp.mainWindow?.makeFirstResponder(nil)
         pickerColor = rgb.swiftUIColor
-        store.send(.color(rgb), to: device.id)
+        customHex = rgb.hex
+        hexEdited = false
+        store.send(.color(rgb), to: device.id, debounce: debounce)
+    }
+
+    private func applyCustomColor() {
+        guard let rgb = RGB(hex: customHex), !store.busyIDs.contains(device.id) else { return }
+        setColor(rgb)
     }
 }

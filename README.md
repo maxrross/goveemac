@@ -1,20 +1,23 @@
 <p align="center">
-  <img src="docs/icon.png" width="100" alt="Govee Mac icon">
+  <img src="docs/icon.png" width="100" alt="Govee Mac standing-lamp icon">
 </p>
 
 <h1 align="center">Govee Mac</h1>
 <p align="center"><strong>Your lights. Your Mac.</strong><br>Native, local control for Govee lights. Built by the community.</p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-14a392" alt="MIT license"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-333333" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-333333" alt="macOS 14 or later">
+  <a href="https://github.com/jasonkneen/ShadKit"><img src="https://img.shields.io/badge/SwiftUI-ShadKit-333333" alt="SwiftUI components from ShadKit"></a>
 </p>
 
 Govee Mac is an independent, open-source macOS app for controlling compatible Govee lights over **Bluetooth LE** or **local Wi-Fi**. No Govee account, cloud service, API key, subscription, or telemetry is required.
 
 This is an early community release. Device support varies by model and firmware; please help us build the [compatibility list](docs/COMPATIBILITY.md).
 
-![Govee Mac controls showing clearly labeled virtual demo lights](docs/screenshot.png)
+![Govee Mac with prebuilt SwiftUI controls and clearly labeled virtual demo lights](docs/screenshot.png)
+
+![Independent Top, Middle, and Bottom controls for a virtual H60B2 Tree lamp](docs/screenshot-heads.png)
 
 ## What you can do
 
@@ -83,12 +86,16 @@ Potential next steps include broader Bluetooth protocols, screen sync, groups, a
 
 ## Architecture
 
-`GoveeKit` contains Sendable value models, LAN/BLE packet codecs, and the legacy session cipher, with no UI or third-party dependencies. `GoveeMac` contains the SwiftUI app, shared observable store, CoreBluetooth service, and a serial-queue UDP transport. Commands are serialized per light; color-picker edits are debounced and BLE writes respect backpressure. Bluetooth state is queried after commands; session keys are kept only in memory and discarded at disconnect.
+`GoveeKit` contains Sendable value models, LAN/BLE packet codecs, and the legacy session cipher, with no UI or third-party dependencies. `GoveeMac` contains the SwiftUI app, shared observable store, CoreBluetooth service, and a serial-queue UDP transport. Its cards, buttons, switches, sliders, tabs, badges, alerts, and inputs come from [ShadKit](https://github.com/jasonkneen/ShadKit), a SwiftUI component library based on shadcn/ui. Navigation, system menus, sheets, and color picking use native macOS components. The app remains entirely Swift. Commands are serialized per light; color-picker and slider edits are debounced and BLE writes respect backpressure. Bluetooth state is queried after commands; session keys are kept only in memory and discarded at disconnect.
+
+ShadKit is pinned in `Package.swift` and `Package.resolved` to revision `6dbefdeb72a276708b7ca748c71ac166c0f4f17d`, which includes keyboard and accessibility support for its switches and sliders. Only its `ShadcnUI` product is linked. The standard neutral theme follows the system appearance. App screens compose these prebuilt components without app-defined control styles, card surfaces, or decorative shapes.
+
+The approved standing-lamp icon is included as a source PNG and packaged macOS ICNS. See [the icon source and regeneration instructions](docs/icon-source.md).
 
 Device nicknames, favorites, manual IPs, and custom presets stay in local macOS preferences. No network credentials are stored. Demo launches use a separate preferences suite. LAN packets and BLE writes are unauthenticated local-device protocols; use them on networks you trust.
 
 ## Credits and license
 
-Inspired by [Govee-Sync](https://github.com/Didilusse/Govee-Sync) by Adil Rahmani. Its MIT-licensed Bluetooth command framing is adapted with attribution. Encrypted-session research is credited to [mpalczew/govee-ble-segments](https://github.com/mpalczew/govee-ble-segments). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for notices. The UI, Wi-Fi transport, state handling, app icon, and project structure are new.
+Inspired by [Govee-Sync](https://github.com/Didilusse/Govee-Sync) by Adil Rahmani. Its MIT-licensed Bluetooth command framing is adapted with attribution. Encrypted-session research is credited to [mpalczew/govee-ble-segments](https://github.com/mpalczew/govee-ble-segments). UI components come from [ShadKit](https://github.com/jasonkneen/ShadKit) by Jason Kneen. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for notices. The Wi-Fi transport, state handling, app icon, and project structure are new.
 
 MIT © Govee Mac contributors. Independent community software; not affiliated with or endorsed by Govee.

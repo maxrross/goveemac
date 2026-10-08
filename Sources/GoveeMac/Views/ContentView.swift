@@ -1,9 +1,11 @@
 import SwiftUI
 import GoveeKit
+import ShadcnUI
 
 struct ContentView: View {
     @Bindable var store: LightStore
     @State private var discovery: DiscoveryRequest?
+    @Environment(\.shadcnPalette) private var palette
 
     var body: some View {
         NavigationSplitView {
@@ -20,11 +22,13 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle(store.selectedDevice?.name ?? "Govee Mac")
+            .background(palette.background)
+            .navigationTitle("Govee Mac")
             .toolbar {
-                ToolbarItemGroup {
+                ToolbarItemGroup(placement: .primaryAction) {
                     if store.isScanningLAN || store.isScanningBluetooth { ProgressView().controlSize(.small) }
                     Button { discovery = DiscoveryRequest(kind: .lan) } label: { Label("Add light", systemImage: "plus") }
+                        .buttonStyle(.shadcn(.ghost, size: .small, hasIcon: true))
                         .help("Discover or add a light")
                     Menu {
                         Button("All lights on") { store.setAllPower(true) }
@@ -36,7 +40,9 @@ struct ContentView: View {
                 }
             }
         }
-        .sheet(item: $discovery) { request in DiscoveryView(store: store, initialKind: request.kind) }
+        .sheet(item: $discovery) { request in
+            DiscoveryView(store: store, initialKind: request.kind).shadcnSurface(glass: false)
+        }
         .alert("Couldn’t control the light", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }
