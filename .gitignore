@@ -1,0 +1,12 @@
+.build/
+.swiftpm/
+dist/
+work/
+.DS_Store
+*.xcuserstate
+xcuserdata/
+*.dSYM/
+*.zip
+.env
+.env.*
+*.log

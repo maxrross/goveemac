@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Ideas and questions
+    url: https://github.com/maxrross/goveemac/discussions
+    about: Discuss ideas and help shape the community project.

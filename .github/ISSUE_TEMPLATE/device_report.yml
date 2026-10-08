@@ -1,0 +1,43 @@
+name: Device compatibility report
+description: Tell the community which controls work on your model.
+labels: [compatibility]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Model and firmware
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection tested
+      options: [Bluetooth, Local Wi-Fi]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App and macOS versions
+    validations:
+      required: true
+  - type: textarea
+    id: controls
+    attributes:
+      label: Results for each control
+      description: Does the physical light respond? Connection alone is not enough.
+      value: |
+        Discovery:
+        Connection:
+        Power on/off:
+        Brightness:
+        RGB color:
+        White temperature (LAN):
+        Presets:
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Do not include device addresses or private network information.

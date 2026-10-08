@@ -1,0 +1,35 @@
+name: Bug report
+description: Help us reproduce and fix a problem.
+labels: [bug]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Govee model and firmware
+      placeholder: H6098, firmware version if known
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options: [Bluetooth, Local Wi-Fi, Demo]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App and macOS versions
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected behavior, and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Remove device identifiers, serial numbers, and private IP addresses before posting.

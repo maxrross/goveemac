@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key><string>GoveeMac</string>
+  <key>CFBundleIdentifier</key><string>community.goveemac.app</string>
+  <key>CFBundleName</key><string>Govee Mac</string>
+  <key>CFBundleDisplayName</key><string>Govee Mac</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleVersion</key><string>1</string>
+  <key>CFBundleIconFile</key><string>GoveeMac</string>
+  <key>LSMinimumSystemVersion</key><string>14.0</string>
+  <key>NSPrincipalClass</key><string>NSApplication</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSBluetoothAlwaysUsageDescription</key><string>Govee Mac uses Bluetooth to discover and control your nearby Govee lights when you choose Bluetooth.</string>
+  <key>NSBluetoothPeripheralUsageDescription</key><string>Govee Mac uses Bluetooth to connect directly to your Govee lights.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>Govee Mac discovers and controls LAN-enabled Govee lights on your local network.</string>
+</dict>
+</plist>
