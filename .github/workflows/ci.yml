@@ -24,7 +24,7 @@ jobs:
         run: |
           plutil -lint "dist/Govee Mac.app/Contents/Info.plist"
           codesign --verify --strict "dist/Govee Mac.app"
-          lipo -verify_arch arm64 x86_64 "dist/Govee Mac.app/Contents/MacOS/GoveeMac"
+          lipo "dist/Govee Mac.app/Contents/MacOS/GoveeMac" -verify_arch arm64 x86_64
           ditto -c -k --sequesterRsrc --keepParent "dist/Govee Mac.app" dist/Govee-Mac-universal.zip
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
