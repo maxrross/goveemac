@@ -16,7 +16,7 @@ struct DeviceDetailView: View {
             VStack(alignment: .leading, spacing: Space.x6) {
                 hero
                 if device.connection == .bluetooth && !device.isAvailable {
-                    ShadcnCard {
+                    FlatCard {
                         ShadcnCardHeader {
                             ShadcnCardTitle(device.isConnecting ? "Connecting to your light…" : "Connect to control this light")
                             ShadcnCardDescription("Keep it nearby and close other Bluetooth controllers.")
@@ -37,17 +37,12 @@ struct DeviceDetailView: View {
                     HStack {
                         Label(store.live.mode, systemImage: "waveform.path").font(.callout.weight(.medium))
                         Spacer()
-                        Button("Stop & restore") { Task { await store.live.stop(restore: true) } }
-                            .buttonStyle(.bordered)
+                        ShadcnButton("Stop & restore", variant: .secondary, size: .small) { Task { await store.live.stop(restore: true) } }
                     }.padding(12).background(.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
                 }
-                Picker("Light controls", selection: $tab) {
-                    Text("Color").tag("Color")
-                    Text("Scenes").tag("Scenes")
-                    Text("Music").tag("Music")
-                    Text("Screen").tag("Screen")
-                    Text("Saved looks").tag("Saved looks")
-                }.pickerStyle(.segmented).labelsHidden()
+                ShadcnTabs(selection: $tab, variant: .line,
+                           items: ["Color", "Scenes", "Music", "Screen", "Saved looks"].map { ($0, $0) })
+
                 switch tab {
                 case "Scenes": SceneBrowserView(store: store, device: device)
                 case "Music": SyncControlsView(store: store, device: device, screen: false)
@@ -56,8 +51,7 @@ struct DeviceDetailView: View {
                     HStack {
                         Text("Your collection").font(.headline)
                         Spacer()
-                        Button("Save current look", systemImage: "plus") { presetName = ""; savingPreset = true }
-                            .buttonStyle(.bordered)
+                        ShadcnButton("Save current look", systemImage: "plus", variant: .secondary, size: .small) { presetName = ""; savingPreset = true }
                             .disabled(!device.isAvailable || (!device.heads.isEmpty && !device.heads.allSatisfy(\.hasRequestedState)))
                     }
                     PresetsView(store: store, device: device)
@@ -65,7 +59,7 @@ struct DeviceDetailView: View {
                     LightControlsView(store: store, device: device).disabled(!device.isAvailable)
                     if !device.heads.isEmpty { HeadControlsView(store: store, device: device).disabled(!device.isAvailable) }
                 }
-                DisclosureGroup("Connection details") { connectionDetails }
+                connectionDetails
             }.padding(Space.x6).frame(maxWidth: 1024).frame(maxWidth: .infinity)
         }
         .sheet(isPresented: $renaming) {
@@ -96,20 +90,14 @@ struct DeviceDetailView: View {
                     .font(.callout).foregroundStyle(.secondary)
             }
             Spacer()
-            VStack(spacing: 5) {
-                ForEach(device.heads.reversed()) { head in
-                    Capsule().fill(head.wireColor.swiftUIColor.gradient).frame(width: 56, height: 13)
-                        .shadow(color: head.color.swiftUIColor.opacity(head.isOn ? 0.25 : 0), radius: 8)
-                }
-                if device.heads.isEmpty {
-                    RoundedRectangle(cornerRadius: 16).fill(device.state.color.swiftUIColor.gradient).frame(width: 55, height: 55)
-                }
-            }.accessibilityHidden(true).padding(.trailing, 8)
+            if device.heads.count == 3 {
+                TreeLampPreview(heads: device.heads).accessibilityHidden(true).padding(.trailing, 8)
+            }
         }.padding(.vertical, 8)
     }
 
     private var connectionDetails: some View {
-        ShadcnCard {
+        FlatCard {
             ShadcnCardHeader(content: {
                 ShadcnCardTitle("Connection")
                 ShadcnCardDescription(device.usesEncryptedBLE ? "Bluetooth · encrypted session" : device.connection.title)
@@ -138,7 +126,7 @@ struct DeviceDetailView: View {
 
     private func nameSheet(title: String, prompt: String, name: Binding<String>, actionTitle: String, action: @escaping () -> Void) -> some View {
         let valid = !name.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return ShadcnCard {
+        return FlatCard {
             ShadcnCardHeader {
                 ShadcnCardTitle(title)
                 ShadcnCardDescription(prompt)

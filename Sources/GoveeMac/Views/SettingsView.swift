@@ -8,7 +8,7 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.x4) {
-                ShadcnCard {
+                FlatCard {
                     ShadcnCardHeader {
                         ShadcnCardTitle("Govee Mac")
                         ShadcnCardDescription("Quick access to your lights.")
@@ -23,7 +23,7 @@ struct SettingsView: View {
                         LabeledContent("Version", value: "0.2.0").font(.callout)
                     }
                 }
-                ShadcnCard {
+                FlatCard {
                     ShadcnCardHeader { ShadcnCardTitle("CLI & agents") }
                     ShadcnCardContent {
                         Text(store.cliStatus).font(.callout)
@@ -32,7 +32,7 @@ struct SettingsView: View {
                             .font(.caption.monospaced()).textSelection(.enabled)
                     }
                 }
-                ShadcnCard {
+                FlatCard {
                     ShadcnCardHeader {
                         ShadcnCardTitle("Community")
                         ShadcnCardDescription("An independent, community-built project. Not affiliated with Govee. No account or API key required. Govee scene definitions are downloaded on request and cached locally. Screen and audio data stays on your Mac.")

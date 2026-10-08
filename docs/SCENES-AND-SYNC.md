@@ -29,27 +29,31 @@ Choose Saved looks to save your current head colors and brightness levels.
 
 Music supports system audio (default) and microphone input. System audio uses
 ScreenCaptureKit; microphone input uses AVAudioEngine. Audio is split into
-bass, mid, and treble energy bands and mapped to the three heads with smoothing
-and adjustable sensitivity. Nothing is recorded or uploaded. Music continues
+bass, mid, and treble energy bands. Continuous filters, automatic gain, a fast
+attack/slower release envelope, and bass onset detection drive changing hues
+and individual head brightness. Sensitivity is adjustable. Nothing is recorded or uploaded. Music continues
 with other apps playing audio. Capture may not include protected media.
 
 Screen matching samples one display at low resolution. Choose vertical regions
 (bottom/middle/top), horizontal regions (left/center/right), or the whole screen.
-The default display follows the capture framework’s first available display;
-select an explicit display if needed. Govee Mac excludes its own window from
-the capture to reduce color feedback. Color frames are processed locally and
-discarded immediately. Black content produces dark colors.
+The default is the main display; displays show their actual macOS names.
+The live thumbnail shows which visible display is captured, including Govee Mac's
+window. Vivid emphasizes dominant colored areas without diluting them with dark
+bars; Average uses the mean visible color. Transparent padding and incomplete
+frames are ignored. Color frames are processed locally; only the current
+low-resolution preview is held in memory. Truly black content produces black.
 
 macOS requires Screen & System Audio Recording permission for screen and
 system-audio capture, and Microphone permission for microphone input. Access
 is requested when starting the feature, never at launch. If denied, enable
 Govee Mac in System Settings → Privacy & Security, restart it, and retry.
-Source, display, and region changes take effect when Start is pressed again.
+Source, display, region, and style changes restart the active capture automatically.
 Manual edits stop sync. Stop & restore restores the prior known look or scene.
 
-This release does not provide complete Govee Home parity: account/cloud DIY,
-community sharing, Govee device groups, shopping, camera calibration, firmware
-updates, and cloud automation remain in Govee’s apps. LAN temperature remains
+Account-specific DIY/Share Space import, Govee's AI generator, remote cloud control,
+and Alexa/Google account linking are not implemented. Wi-Fi setup, camera calibration,
+and firmware updates also remain in Govee's apps. Local groups and schedules are
+not implemented yet, but do not inherently require cloud access. LAN temperature remains
 available; native white-channel control over Bluetooth is not yet implemented.
 Only supported model/firmware protocols can be controlled locally.
 
@@ -61,4 +65,12 @@ head frames. Screen capture produced region-specific colors while Bluetooth
 remained connected. CLI tests checked per-head edits, animated effects,
 stop/restore, malformed and oversized requests, concurrent clients, selected
 light filtering, JSON imports, and invalid arguments. The pure protocol,
-cipher, scene-fragment, audio-band, and screen-region suite has 31 tests.
+cipher, scene-fragment, audio-band, music-response, and screen-region/style suite
+has 38 tests. A quiet 16-beat synthetic system-audio test produced 49 distinct
+frames, detected all 16 beats, and sent a median 7.7 frames per second while
+the H60B2 remained connected. These are software/transport measurements, not
+a claim of measured physical beat latency. UI checks at the minimum window
+width verified wrapped effects, search filtering, and equal control-card heights.
+Live checks compared Vivid and Average screen colors, exercised both audio
+sources, and verified that switching capture modes preserves the original
+head colors and brightness for Stop & restore.

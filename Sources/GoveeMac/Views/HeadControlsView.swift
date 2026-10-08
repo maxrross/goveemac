@@ -1,5 +1,6 @@
 import SwiftUI
 import GoveeKit
+import ShadcnUI
 
 struct HeadControlsView: View {
     let store: LightStore
@@ -34,27 +35,27 @@ private struct HeadControlCard: View {
     var body: some View {
         ControlPanel {
             HStack {
-                Text(label).font(.headline)
+                ShadcnCardTitle(label)
                 Spacer()
-                Toggle("Power", isOn: Binding(get: { draft.isOn }, set: { draft.isOn = $0; send() }))
-                    .toggleStyle(.switch).labelsHidden().accessibilityLabel("\(label) power")
+                ShadcnSwitch(isOn: Binding(get: { draft.isOn }, set: { draft.isOn = $0; send() }))
+                    .accessibilityLabel("\(label) power")
             }
             ColorPicker("Color", selection: Binding(get: { draft.color.swiftUIColor }, set: { setColor(RGB(color: $0), debounce: true) }), supportsOpacity: false).accessibilityLabel("\(label) color")
             HStack(spacing: 6) {
                 ForEach(colors, id: \.hex) { color in ColorSwatch(color: color, selected: draft.color == color, label: "\(label) set color \(color.hex)") { setColor(color) } }
             }
             HStack(spacing: 6) {
-                TextField("#RRGGBB", text: Binding(get: { hex }, set: { hex = $0; hexEdited = true })).textFieldStyle(.roundedBorder).font(.callout.monospaced())
-                    .accessibilityLabel("\(label) hex color").onSubmit(applyHex)
+                ShadcnTextField("#RRGGBB", text: Binding(get: { hex }, set: { hex = $0; hexEdited = true }), onSubmit: applyHex)
+                    .accessibilityLabel("\(label) hex color")
 
-                Button("Apply", action: applyHex).buttonStyle(.bordered).controlSize(.small)
+                ShadcnButton("Apply", variant: .secondary, action: applyHex)
                     .accessibilityLabel("Apply \(label) color").disabled(RGB(hex: hex) == nil)
             }
             HStack { Text("Brightness").foregroundStyle(.secondary); Spacer(); Text("\(draft.brightness)%").monospacedDigit() }.font(.caption)
-            Slider(value: Binding(get: { Double(draft.brightness) }, set: { draft.brightness = Int($0.rounded()); send(debounce: true) }), in: 1...100) { editingBrightness = $0 }
+            ShadcnSlider(value: Binding(get: { Double(draft.brightness) }, set: { draft.brightness = Int($0.rounded()); send(debounce: true) }), in: 1...100, step: 1)
                 .accessibilityLabel("\(label) brightness")
+                .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in editingBrightness = true }.onEnded { _ in editingBrightness = false })
 
-            if !head.hasRequestedState { Text("Shows your last requested color after you edit this head.").font(.caption2).foregroundStyle(.secondary) }
         }
         .onChange(of: head) { _, value in
             if !editingBrightness { draft.brightness = value.brightness }

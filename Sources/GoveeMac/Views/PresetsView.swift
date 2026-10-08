@@ -10,7 +10,7 @@ struct PresetsView: View {
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: Space.x3)], spacing: Space.x3) {
             ForEach(store.presets) { preset in
-                ShadcnCard {
+                FlatCard {
                     ShadcnCardHeader {
                         Label(preset.name, systemImage: preset.symbol).font(.headline).lineLimit(1)
                         ShadcnCardDescription(preset.heads == nil ? "\(preset.brightness)% brightness" : "3 heads · \(preset.brightness)%")

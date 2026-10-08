@@ -9,7 +9,7 @@ struct ColorSwatch: View {
     var body: some View {
         Button(action: action) {
             Circle().fill(color.swiftUIColor)
-                .overlay { if selected { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white).shadow(color: .black.opacity(0.4), radius: 1) } }
+                .overlay { if selected { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white) } }
                 .padding(3)
                 .overlay { Circle().strokeBorder(selected ? Color.primary.opacity(0.6) : Color.clear, lineWidth: 1) }
                 .frame(width: 28, height: 28)

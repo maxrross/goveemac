@@ -1,15 +1,6 @@
 import SwiftUI
 import GoveeKit
-
-struct ControlPanel<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16, content: content)
-            .padding(18).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
-            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(.primary.opacity(0.06)) }
-    }
-}
+import ShadcnUI
 
 struct LightControlsView: View {
     let store: LightStore
@@ -23,54 +14,54 @@ struct LightControlsView: View {
     @State private var hexEdited = false
     private let swatches: [RGB] = [RGB(255,86,76), RGB(255,167,64), RGB(250,218,82), RGB(73,200,133), RGB(40,185,205), RGB(68,132,250), RGB(165,104,250), RGB(247,119,191)]
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            ControlPanel {
+        EqualHeightColumns {
+            ControlPanel(fillsHeight: true) {
                 HStack {
-                    Text("Whole lamp").font(.headline)
+                    ShadcnCardTitle("Whole lamp")
                     Spacer()
-                    Toggle("Power", isOn: Binding(get: { device.state.isOn }, set: { store.send(.power($0), to: device.id) }))
-                        .toggleStyle(.switch).labelsHidden().accessibilityLabel("Light power")
-                }
+                    ShadcnSwitch(isOn: Binding(get: { device.state.isOn }, set: { store.send(.power($0), to: device.id) }))
+                        .accessibilityLabel("Light power")
+                }.frame(height: 32)
                 HStack {
                     Text("Brightness").font(.callout).foregroundStyle(.secondary)
                     Spacer()
                     Text("\(Int(brightness))%").font(.callout.monospacedDigit())
                 }
-                Slider(value: Binding(get: { brightness }, set: { brightness = $0; store.send(.brightness(Int($0.rounded())), to: device.id, debounce: true) }), in: 1...100) { editingBrightness = $0 }
+                ShadcnSlider(value: Binding(get: { brightness }, set: { brightness = $0; store.send(.brightness(Int($0.rounded())), to: device.id, debounce: true) }), in: 1...100, step: 1)
                     .accessibilityLabel("Brightness")
+                    .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in editingBrightness = true }.onEnded { _ in editingBrightness = false })
 
-                HStack(spacing: 8) {
+                ShadcnWrapLayout(spacing: 8) {
                     ForEach([25,50,75,100], id: \.self) { value in
-                        Button("\(value)%") { brightness = Double(value); store.send(.brightness(value), to: device.id) }
-                            .buttonStyle(.bordered).controlSize(.small)
+                        ShadcnButton("\(value)%", variant: .secondary, size: .xs) { brightness = Double(value); store.send(.brightness(value), to: device.id) }
                     }
                 }
             }
-            ControlPanel {
+            ControlPanel(fillsHeight: true) {
                 HStack {
-                    Text("Color").font(.headline)
+                    ShadcnCardTitle("Color")
                     Spacer()
                     if device.supportsTemperature {
-                        Picker("Color mode", selection: $white) { Text("RGB").tag(false); Text("White").tag(true) }.pickerStyle(.segmented).labelsHidden().frame(width: 145)
+                        ShadcnTabs(selection: $white, items: [(false, "RGB"), (true, "White")])
                     }
-                }
+                }.frame(height: 32)
                 if white {
                     HStack { Text("Temperature").foregroundStyle(.secondary); Spacer(); Text("\(Int(temperature)) K").monospacedDigit() }.font(.callout)
-                    Slider(value: Binding(get: { temperature }, set: { temperature = $0; store.send(.temperature(Int($0.rounded())), to: device.id, debounce: true) }), in: 2000...9000) { editingTemperature = $0 }
+                    ShadcnSlider(value: Binding(get: { temperature }, set: { temperature = $0; store.send(.temperature(Int($0.rounded())), to: device.id, debounce: true) }), in: 2000...9000, step: 100)
                         .accessibilityLabel("White temperature")
+                        .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in editingTemperature = true }.onEnded { _ in editingTemperature = false })
 
-                    Button("Apply white") { store.send(.temperature(Int(temperature)), to: device.id) }.buttonStyle(.bordered).controlSize(.small)
+                    ShadcnButton("Apply white", variant: .secondary, size: .small) { store.send(.temperature(Int(temperature)), to: device.id) }
                 } else {
-                    HStack(spacing: 5) {
+                    ShadcnWrapLayout(spacing: 5) {
                         ForEach(swatches, id: \.hex) { rgb in ColorSwatch(color: rgb, selected: device.state.color == rgb) { setColor(rgb) } }
-                        Spacer(minLength: 0)
                     }
                     ColorPicker("Custom color", selection: Binding(get: { device.state.color.swiftUIColor }, set: { setColor(RGB(color: $0), debounce: true) }), supportsOpacity: false)
                     HStack(spacing: 8) {
-                        TextField("#RRGGBB", text: Binding(get: { hex }, set: { hex = $0; hexEdited = true })).textFieldStyle(.roundedBorder).font(.callout.monospaced())
-                            .accessibilityLabel("Custom hex color").onSubmit(applyHex)
+                        ShadcnTextField("#RRGGBB", text: Binding(get: { hex }, set: { hex = $0; hexEdited = true }), onSubmit: applyHex)
+                            .accessibilityLabel("Custom hex color")
 
-                        Button("Apply", action: applyHex).buttonStyle(.bordered).disabled(RGB(hex: hex) == nil)
+                        ShadcnButton("Apply", variant: .secondary, action: applyHex).disabled(RGB(hex: hex) == nil)
                             .accessibilityLabel("Apply custom color")
                     }
                 }

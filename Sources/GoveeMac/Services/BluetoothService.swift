@@ -96,7 +96,7 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
         for command: UInt8 in [0x01, 0x04, 0x05] { try? write(BLEProtocol.query(command), id: id) }
     }
 
-    func send(_ command: LightCommand, to id: String) async throws {
+    func send(_ command: LightCommand, to id: String, streaming: Bool = false) async throws {
         // Newer RGBIC models use a percent scale. Values above 100 can disconnect them.
         let name = peripherals[id]?.name ?? ""
         let range = name.range(of: "H[0-9A-F]{4}", options: .regularExpression)
@@ -108,8 +108,33 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
         for (index, packet) in packets.enumerated() {
             if index > 0 { try await Task.sleep(for: .milliseconds(100)) }
             let wirePacket = try sessions[id]?.encrypt(packet) ?? packet
-            try await writeCommand(wirePacket, id: id)
+            if streaming { try await writeStreaming(wirePacket, id: id) }
+            else { try await writeCommand(wirePacket, id: id) }
         }
+    }
+
+    /// Streaming frames use CoreBluetooth's flow control instead of waiting for
+    /// three separate GATT acknowledgments for every frame. Manual edits keep
+    /// their acknowledged delivery path. Never enqueue stale animation frames.
+    private func writeStreaming(_ packet: Data, id: String) async throws {
+        guard let peripheral = peripherals[id], let characteristic = characteristics[id],
+              peripheral.state == .connected, ready.contains(id) else {
+            throw ConnectionError.message("Connect to the Bluetooth light first.")
+        }
+        guard characteristic.properties.contains(.writeWithoutResponse) else {
+            try await writeCommand(packet, id: id); return
+        }
+        let deadline = ProcessInfo.processInfo.systemUptime + 3
+        while !peripheral.canSendWriteWithoutResponse {
+            try Task.checkCancellation()
+            guard peripheral.state == .connected, ready.contains(id),
+                  ProcessInfo.processInfo.systemUptime < deadline else {
+                throw ConnectionError.message("The Bluetooth light could not keep up with streaming. Reconnect and retry.")
+            }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        try Task.checkCancellation()
+        peripheral.writeValue(packet, for: characteristic, type: .withoutResponse)
     }
 
     private func writeCommand(_ packet: Data, id: String) async throws {

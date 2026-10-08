@@ -21,7 +21,7 @@ Discovery and connection alone do not establish support for power, brightness, c
 
 Nearby names containing `Govee`, `iHoment`, or a Govee `Hxxxx` model code appear in discovery. The app locates the writable characteristic `00010203-0405-0607-0809-0a0b0c0d2b11`, subscribes to `…2b10`, and queries state before enabling controls. If plain queries go unanswered, it negotiates a legacy encrypted `e701`/`e702` session. Newer AES-GCM session variants are not implemented.
 
-Bluetooth reads power, brightness, and recognized solid-RGB reply formats. H60B2/H6098/H6099 return color modes without RGB values, so the UI preserves the last requested color. Bluetooth commands wait for GATT write acknowledgment before updating the UI, then request state. A GATT acknowledgment confirms delivery to the characteristic; it does not confirm a physical color change. A power query every two seconds keeps the authenticated connection active. Check the actual light when reporting support.
+Bluetooth reads power, brightness, and recognized solid-RGB reply formats. H60B2/H6098/H6099 return color modes without RGB values, so the UI preserves the last requested color. Manual Bluetooth commands wait for GATT write acknowledgment before updating the UI, then request state. Streaming prefers writes without response when available, waiting for CoreBluetooth flow control without queuing stale frames. A GATT acknowledgment confirms delivery to the characteristic; it does not confirm a physical color change. A power query every two seconds keeps the authenticated connection active. Check the actual light when reporting support.
 
 H60B2/H6098/H6099 and devices using the legacy encrypted session use a 0–100 brightness scale. Other devices use the original 0–254 scale. H60B2 sends manual-color mode followed by an RGBIC command selecting its three heads; H6098/H6099 use the extended RGBIC command. Broader model profiles are still needed.
 
@@ -32,7 +32,7 @@ H60B2/H6098/H6099 and devices using the legacy encrypted session use a 0–100 b
 3. Allow Local Network access for Govee Mac if prompted.
 4. Open Add light → Local Wi-Fi and scan.
 
-If the model does not offer LAN Control, try Bluetooth. This app does not use Govee's cloud API.
+If the model does not offer LAN Control, try Bluetooth. This app does not use Govee's authenticated cloud-control API. It downloads public model-specific scene definitions when requested, then caches them locally.
 
 Discovery sends `scan` to `239.255.255.250:4001` on active IPv4 multicast interfaces. Replies arrive on UDP 4002. Commands and state requests use the light's source IPv4 address on UDP 4003. The app ignores a packet's advertised IP when deciding where to send commands.
 
@@ -55,4 +55,4 @@ White-temperature requests are clamped to 2000–9000 K; individual models may s
 - [Govee LAN API 101](https://community.govee.com/posts/mastering-the-lan-api-series-lan-api-101/136755), published Govee community protocol documentation.
 - [H60B2 LAN segment protocol](https://github.com/alexluckett/govee2mqtt-segment-control/blob/main/docs/SEGMENT_CONTROL.md), packet format and state-readback limitations tested by that project's author.
 
-The app has no screen capture, audio capture, cloud scenes, or cloud-only device support in this release. Individual head controls are limited to H60B2; other segment-capable models need their own verified profiles.
+The app supports local screen matching, system-audio and microphone music sync, and native scenes downloaded from Govee's public model library. Cloud-only device control and account-specific DIY imports are not implemented. Individual head controls are limited to H60B2; other segment-capable models need their own verified profiles.

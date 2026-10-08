@@ -1,64 +1,134 @@
 import SwiftUI
 import GoveeKit
+import ShadcnUI
 
 struct SyncControlsView: View {
     let store: LightStore
     let device: LightDevice
     let screen: Bool
+    @Environment(\.shadcnPalette) private var palette
     private var live: LiveController { store.live }
+    private var mode: String { screen ? "Screen match" : "Music" }
+    private var isActive: Bool { live.deviceID == device.id && live.mode == mode }
+    private var labels: [String] {
+        if !screen { return ["Bass", "Mids", "Treble"] }
+        if live.mapping == "columns" { return ["Left", "Center", "Right"] }
+        return ["Bottom", "Middle", "Top"]
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: Space.x5) {
             VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: screen ? "display" : "waveform").font(.system(size: 28)).foregroundStyle(.tint)
-                Text(screen ? "Bring your screen into the room" : "Let your music set the mood")
-                    .font(.title2.weight(.semibold))
-                Text(screen ? "Match the colors on your display, with a separate region for each lamp head." : "Bass, mids, and treble drive the three heads. Any app’s audio can set the rhythm.")
-                    .font(.callout).foregroundStyle(.secondary)
+                Text(screen ? "Screen matching" : "Music sync").font(.title2.weight(.semibold))
+                ShadcnCardDescription(screen
+                    ? "Match the colors you see on your display. Choose how its regions map to your light."
+                    : "Color changes on the beat, with bass, mids and treble controlling each head’s energy.")
             }
-            VStack(alignment: .leading, spacing: 16) {
+            ControlPanel {
                 if screen {
-                    HStack {
-                        Picker("Display", selection: Binding(get: { live.displayID ?? 0 }, set: { live.displayID = $0 == 0 ? nil : $0 })) {
-                            Text("Default display").tag(UInt32(0))
-                            ForEach(live.displays) { Text($0.name).tag($0.id) }
-                        }
-                        Button("Find displays") { Task { await live.refreshDisplays() } }.controlSize(.small)
+                    HStack(spacing: 12) {
+                        Text("Display").font(.callout)
+                        Menu {
+                            Picker("Display", selection: Binding(get: { live.displayID ?? 0 }, set: { live.displayID = $0 == 0 ? nil : $0 })) {
+                                Text("Main display").tag(UInt32(0))
+                                ForEach(live.displays) { Text($0.name).tag($0.id) }
+                            }
+                        } label: {
+                            HStack { Text(live.displays.first { $0.id == live.displayID }?.name ?? "Main display"); Image(systemName: "chevron.down").font(.caption2) }
+                        }.buttonStyle(.shadcn(.secondary)).menuIndicator(.hidden)
+                        Spacer(minLength: 0)
+                        ShadcnButton(icon: "arrow.clockwise", variant: .secondary, size: .iconSM) { Task { await live.refreshDisplays() } }
+                            .accessibilityLabel("Refresh displays")
                     }
-                    Picker("Color regions", selection: Binding(get: { live.mapping }, set: { live.mapping = $0 })) {
-                        Text("Vertical · bottom / middle / top").tag("rows")
-                        Text("Horizontal · left / center / right").tag("columns")
-                        Text("Whole screen").tag("whole")
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Color regions").font(.callout)
+                        ShadcnTabs(selection: Binding(get: { live.mapping }, set: { live.mapping = $0 }),
+                                   items: [("rows", "Vertical"), ("columns", "Horizontal"), ("whole", "Whole screen")])
+
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Color style").font(.callout)
+                        ShadcnTabs(selection: Binding(get: { live.screenStyle }, set: { live.screenStyle = $0 }),
+                                   items: [("vivid", "Vivid"), ("average", "Average")])
+                        ShadcnCardDescription("Vivid brings out colored areas on a dark screen. Average follows the overall color.")
                     }
                 } else {
-                    Picker("Audio source", selection: Binding(get: { live.source }, set: { live.source = $0 })) {
-                        Text("System audio").tag("system")
-                        Text("Microphone").tag("microphone")
-                    }.pickerStyle(.segmented)
-                    HStack {
-                        Text("Sensitivity").font(.callout)
-                        Slider(value: Binding(get: { live.sensitivity }, set: { live.sensitivity = $0 }), in: 0.2...5)
-                        Text("\(live.sensitivity, specifier: "%.1f")×").font(.caption.monospacedDigit()).frame(width: 40)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Audio source").font(.callout)
+                        ShadcnTabs(selection: Binding(get: { live.source }, set: { live.source = $0 }),
+                                   items: [("system", "System audio"), ("microphone", "Microphone")])
+
+                    }
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Sensitivity").font(.callout)
+                            Spacer()
+                            Text("\(live.sensitivity, specifier: "%.1f")×").font(.callout.monospacedDigit())
+                        }
+                        ShadcnSlider(value: Binding(get: { live.sensitivity }, set: { live.sensitivity = $0 }), in: 0.2...5, step: 0.1)
+                            .accessibilityLabel("Music sensitivity")
+                    }
+                }
+                if screen, isActive, let image = live.screenImage {
+                    Image(nsImage: image).resizable().interpolation(.none).aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: 360, maxHeight: 180)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .accessibilityLabel("Live preview of the captured display")
+                }
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(0..<3, id: \.self) { i in
+                        VStack(alignment: .leading, spacing: 8) {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isActive && live.hasCaptureInput ? live.preview[i].swiftUIColor : palette.muted)
+                                .frame(height: 52)
+                                .overlay { RoundedRectangle(cornerRadius: 8).strokeBorder(palette.border) }
+                            HStack {
+                                Text(labels[i]).font(.caption.weight(.medium))
+                                Spacer(minLength: 0)
+                                if isActive && live.hasCaptureInput { Text(live.preview[i].hex).font(.caption2.monospaced()).foregroundStyle(palette.mutedForeground) }
+                            }
+                            if !screen {
+                                GeometryReader { geometry in
+                                    Capsule().fill(palette.muted)
+                                        .overlay(alignment: .leading) {
+                                            Capsule().fill(palette.primary)
+                                                .frame(width: geometry.size.width * min(1, (isActive ? live.levels[i] : 0) * 20))
+                                        }
+                                }.frame(height: 4)
+                            }
+                        }.frame(maxWidth: .infinity)
                     }
                 }
                 HStack(spacing: 8) {
-                    ForEach(0..<3, id: \.self) { i in
-                        RoundedRectangle(cornerRadius: 8).fill(live.preview[i].swiftUIColor.gradient)
-                            .frame(height: 48).overlay { Text(screen ? ["Bottom","Middle","Top"][i] : ["Bass","Mids","Treble"][i]).font(.caption.weight(.medium)).foregroundStyle(.white).shadow(radius: 2) }
-                    }
+                    Circle().fill(isActive && live.hasCaptureInput ? Color.green : palette.mutedForeground).frame(width: 6, height: 6)
+                    Text(isActive ? live.captureStatus : "Ready — start \(screen ? "screen matching" : "music sync") to see live colors")
+                        .font(.caption).foregroundStyle(palette.mutedForeground).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    if isActive && live.outputFPS > 0 { Text("\(live.outputFPS, specifier: "%.1f") fps").font(.caption.monospacedDigit()).foregroundStyle(palette.mutedForeground) }
                 }
-                HStack {
-                    Button(live.isStarting ? "Starting…" : "Start \(screen ? "screen match" : "music sync")", systemImage: "play.fill") {
-                        Task { do { try await live.start(mode: screen ? "Screen match" : "Music", device: device) } catch { store.errorMessage = error.localizedDescription } }
-                    }.buttonStyle(.borderedProminent).disabled(!device.isAvailable || live.isStarting)
+                ShadcnWrapLayout(spacing: 8) {
+                    ShadcnButton(live.isStarting ? "Starting…" : "\(isActive ? "Restart" : "Start") \(screen ? "screen matching" : "music sync")", systemImage: "play.fill") { start() }
+                        .disabled(!device.isAvailable || live.isStarting)
                     if live.isRunning {
-                        Button("Stop & restore", systemImage: "stop.fill") { Task { await live.stop(restore: true) } }.buttonStyle(.bordered)
+                        ShadcnButton("Stop & restore", systemImage: "stop.fill", variant: .secondary) { Task { await live.stop(restore: true) } }
                     }
                 }
-                Text(screen || live.source == "system" ? "macOS asks for Screen & System Audio Recording access when you start. Capture stays on your Mac; no recordings are saved." : "macOS asks for Microphone access when you start. Audio stays on your Mac; no recordings are saved.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }.padding(20).background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
-            Text("Change the source or display, then press Start again to apply it. Manual color controls stop sync. Native Govee scenes keep playing on the light; Mac effects, music, and screen matching need this app running.")
-                .font(.caption).foregroundStyle(.secondary)
+                ShadcnCardDescription(screen || live.source == "system"
+                    ? "Uses macOS Screen & System Audio Recording access. Nothing is recorded or uploaded."
+                    : "Uses macOS Microphone access. Nothing is recorded or uploaded.")
+            }
+            .disabled(live.isStarting)
+            ShadcnCardDescription("Source and display changes apply immediately while running. Manual edits stop sync. Stop & restore returns to your previous look.")
         }
+        .task { if screen { await live.refreshDisplays() } }
+        .onChange(of: live.source) { _, _ in if isActive && !screen { start() } }
+        .onChange(of: live.displayID) { _, _ in if isActive && screen { start() } }
+        .onChange(of: live.mapping) { _, _ in if isActive && screen { start() } }
+        .onChange(of: live.screenStyle) { _, _ in if isActive && screen { start() } }
+    }
+
+    private func start() {
+        guard !live.isStarting else { return }
+        Task { do { try await live.start(mode: mode, device: device) } catch { store.errorMessage = error.localizedDescription } }
     }
 }

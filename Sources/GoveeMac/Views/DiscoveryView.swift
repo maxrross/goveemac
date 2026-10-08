@@ -14,7 +14,7 @@ struct DiscoveryView: View {
 
     var body: some View {
         ScrollView {
-            ShadcnCard {
+            FlatCard {
                 ShadcnCardHeader(content: {
                     ShadcnCardTitle("Make a connection")
                     ShadcnCardDescription("Bring your Govee lights to your Mac.")
@@ -44,7 +44,7 @@ struct DiscoveryView: View {
                     let found = store.devices.filter { $0.connection == kind }
                     if !found.isEmpty {
                         ForEach(found) { device in
-                            ShadcnCard {
+                            FlatCard {
                                 ShadcnCardHeader(content: {
                                     ShadcnCardTitle(device.name)
                                     ShadcnCardDescription("\(device.model) · \(device.status)")

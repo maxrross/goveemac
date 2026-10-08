@@ -300,13 +300,13 @@ final class LightStore {
         }
     }
 
-    func perform(_ commands: [LightCommand], to id: String, persist: Bool = true) async -> Bool {
+    func perform(_ commands: [LightCommand], to id: String, persist: Bool = true, showsBusy: Bool = true) async -> Bool {
         let previous = commandTails[id]
         let task = Task { [weak self] in
             await previous?.value
             guard let self, !Task.isCancelled else { return false }
-            self.busyIDs.insert(id)
-            defer { self.busyIDs.remove(id) }
+            if showsBusy { self.busyIDs.insert(id) }
+            defer { if showsBusy { self.busyIDs.remove(id) } }
             for command in commands {
                 guard await self.execute(command, to: id, persist: persist) else { return false }
             }
@@ -326,7 +326,7 @@ final class LightStore {
         let commands: [LightCommand] = device.heads.isEmpty
             ? [.color(colors.count == 1 ? colors[0] : colors.reduce(colors[0]) { LiveColors.mix($0, $1, amount: 0.5) })]
             : device.heads.map { .head(LightHeadState(id: $0.id, color: colors[$0.id % colors.count], hasRequestedState: true)) }
-        return await perform(commands, to: id, persist: false)
+        return await perform(commands, to: id, persist: false, showsBusy: false)
     }
 
     private func execute(_ command: LightCommand, to id: String, persist: Bool = true) async -> Bool {
@@ -336,7 +336,7 @@ final class LightStore {
         do {
             switch device.connection {
             case .lan: try await lan.send(command, to: device.address, model: device.model)
-            case .bluetooth: try await bluetooth.send(command, to: device.address)
+            case .bluetooth: try await bluetooth.send(command, to: device.address, streaming: !persist)
             }
             if let index = devices.firstIndex(where: { $0.id == id }) {
                 switch command { case .color, .head, .temperature: activeScenes[id] = nil; default: break }

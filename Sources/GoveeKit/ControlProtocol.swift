@@ -12,6 +12,7 @@ public struct ControlRequest: Codable, Sendable {
     public var speed: Double?
     public var sensitivity: Double?
     public var mapping: String?
+    public var style: String?
     public var library: Data?
     public var restore: Bool?
     public init(action: String) { self.action = action }
@@ -47,6 +48,9 @@ public struct ControlReply: Codable, Sendable {
     public var mode: String?
     public var levels: [Double]?
     public var preview: [RGB]?
+    public var captureStatus: String?
+    public var outputFPS: Double?
+    public var beats: Int?
     public init(ok: Bool = true, message: String? = nil) { self.ok = ok; self.message = message }
 }
 public struct CaptureDisplay: Codable, Identifiable, Sendable {

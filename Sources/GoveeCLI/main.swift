@@ -19,7 +19,7 @@ Govee Mac CLI — controls the running app over a private local socket.
   govee effect rainbow|breathe|candle|ocean|aurora|sunset|colorCycle [--speed 1]
   govee music [--source system|microphone] [--sensitivity 2]
   govee displays                         Available screen-capture displays
-  govee screen [--display ID] [--mapping rows|columns|whole]
+  govee screen [--display ID] [--mapping rows|columns|whole] [--style vivid|average]
   govee stop [--restore]                  Stop app-driven lighting
   govee import /path/to/library.json [--device …]
 
@@ -44,7 +44,7 @@ while !args.isEmpty {
     if arg == "--on" { guard request.action == "head" else { fail("--on is only valid with head.") }; request.source = "on"; continue }
     if arg.hasPrefix("--") {
         guard !args.isEmpty else { fail("Missing value for \(arg).") }
-        let allowed = ["--color": ["head"], "--brightness": ["head"], "--source": ["music"], "--speed": ["effect"], "--display": ["screen"], "--sensitivity": ["music"], "--mapping": ["screen"]]
+        let allowed = ["--color": ["head"], "--brightness": ["head"], "--source": ["music"], "--speed": ["effect"], "--display": ["screen"], "--sensitivity": ["music"], "--mapping": ["screen"], "--style": ["screen"]]
         if let actions = allowed[arg], !actions.contains(request.action) { fail("\(arg) is not valid with \(request.action).") }
         let value = args.removeFirst()
         switch arg {
@@ -55,6 +55,7 @@ while !args.isEmpty {
         case "--speed": guard let n = Double(value), n.isFinite, (0.1...5).contains(n) else { fail("Speed must be 0.1–5.") }; request.speed = n
         case "--sensitivity": guard let n = Double(value), n.isFinite, (0.2...5).contains(n) else { fail("Sensitivity must be 0.2–5.") }; request.sensitivity = n
         case "--mapping": guard ["rows","columns","whole"].contains(value) else { fail("Mapping must be rows, columns, or whole.") }; request.mapping = value
+        case "--style": guard ["vivid","average"].contains(value) else { fail("Screen style must be vivid or average.") }; request.style = value
         case "--display": guard let n = UInt32(value) else { fail("Display must be a numeric ID.") }; request.display = n
         default: fail("Unknown option \(arg).")
         }

@@ -9,7 +9,8 @@ extension LightStore {
             case "list", "status":
                 let lights = request.device.map { query in devices.filter { $0.id == query || $0.name.caseInsensitiveCompare(query) == .orderedSame } } ?? devices
                 guard request.device == nil || lights.count == 1 else { throw ControlError.message("Use an exact, unique light name or ID.") }
-                reply.lights = lights.map(ControlLight.init); reply.mode = live.mode; reply.levels = live.levels; reply.preview = live.preview; return reply
+                reply.lights = lights.map(ControlLight.init); reply.mode = live.mode; reply.levels = live.levels; reply.preview = live.preview
+                reply.captureStatus = live.captureStatus; reply.outputFPS = live.outputFPS; reply.beats = live.beatCount; return reply
             case "presets": reply.presets = presets; return reply
             case "displays": reply.displays = try await CaptureService.displays(); return reply
             case "stop": await live.stop(restore: request.restore ?? false); reply.mode = live.mode; return reply
@@ -54,6 +55,7 @@ extension LightStore {
                 if let source = request.source { guard ["system","microphone"].contains(source) else { throw ControlError.message("Music source must be system or microphone.") }; live.source = source }
                 if let sensitivity = request.sensitivity { guard sensitivity.isFinite, (0.2...5).contains(sensitivity) else { throw ControlError.message("Sensitivity must be 0.2–5.") }; live.sensitivity = sensitivity }
                 if let mapping = request.mapping { guard ["rows","columns","whole"].contains(mapping) else { throw ControlError.message("Mapping must be rows, columns, or whole.") }; live.mapping = mapping }
+                if let style = request.style { guard ["vivid", "average"].contains(style) else { throw ControlError.message("Screen style must be vivid or average.") }; live.screenStyle = style }
                 if let display = request.display { live.displayID = display }
                 let effect = request.action == "effect" ? LiveEffect(rawValue: request.value ?? "") : nil
                 guard request.action != "effect" || effect != nil else { throw ControlError.message("Unknown effect. Use govee --help.") }

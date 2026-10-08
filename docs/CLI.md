@@ -20,7 +20,7 @@ govee effect rainbow --speed 0.6 --device 'Tree floor lamp'
 govee music --source system --sensitivity 2 --device 'Tree floor lamp'
 govee music --source microphone --device 'Tree floor lamp'
 govee displays
-govee screen --display 1 --mapping rows --device 'Tree floor lamp'  # Use the actual display ID.
+govee screen --display 1 --mapping rows --style vivid --device 'Tree floor lamp'  # Use the actual display ID.
 govee stop --restore
 govee preset 'Tree mix' --device 'Tree floor lamp'
 ```
@@ -33,7 +33,7 @@ at the symlink target. Use `govee --help` for the complete command list.
 Replies are JSON. Exit status is 0 on success, 1 on app/transport errors, and 2
 on argument errors. `list` includes IDs, state, availability, and individual
 heads. `status` also includes the current sync mode, analyzed audio levels,
-and sampled colors. When more than one light is available, specify its exact
+sampled colors, capture status, detected beats, and output frame rate. When more than one light is available, specify its exact
 name or ID with `--device`. Repeated names require an ID. A Bluetooth write ACK
 or successful LAN send confirms transport, not physical device application.
 
@@ -50,4 +50,9 @@ Manual commands stop Mac-driven sync. `stop --restore` restores the prior
 known head colors, white setting, or native scene. Mac effects, music, and
 screen matching need the Mac awake and the app running; native scenes run on
 the lamp after the commands have been delivered. Frames are serialized and
-rate-limited; Bluetooth responsiveness depends on the device’s ACK timing.
+rate-limited to a target of eight updates per second. Streaming uses flow-controlled
+Bluetooth writes without response when supported; other devices fall back to
+acknowledged writes and may have a lower frame rate. Manual commands retain their
+acknowledged delivery path. The displayed rate describes commands sent, not a
+physical response measurement. Screen style is `vivid` by default; `average`
+uses the mean visible color instead of emphasizing colored areas.

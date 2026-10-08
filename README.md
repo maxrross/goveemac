@@ -15,9 +15,9 @@ Govee Mac is an independent, open-source macOS app for controlling compatible Go
 
 This is an early community release. Device support varies by model and firmware; please help us build the [compatibility list](docs/COMPATIBILITY.md).
 
-![Compact color controls with independent Top, Middle, and Bottom heads](docs/screenshot-controls.png)
+![Equal-height color panels at the minimum window width](docs/screenshot-controls.png)
 
-![The complete H60B2 scene library, with search, categories, and native effects](docs/screenshot-scenes.png)
+![Wrapped Mac effects and the searchable H60B2 scene library](docs/screenshot-scenes.png)
 
 ## What you can do
 
@@ -81,13 +81,13 @@ See the [setup and compatibility guide](docs/COMPATIBILITY.md) for troubleshooti
 
 We welcome device reports, bug fixes, accessibility improvements, translations, and new features. Start with [CONTRIBUTING.md](CONTRIBUTING.md), open an [issue](https://github.com/maxrross/goveemac/issues/new/choose), or join [Discussions](https://github.com/maxrross/goveemac/discussions).
 
-See [CLI & agent control](docs/CLI.md) and [scenes, import, music & screen matching](docs/SCENES-AND-SYNC.md) for usage and current limitations. Full Govee Home parity is not provided: account-specific cloud DIY, firmware updates, camera calibration, and cloud groups/automation still need Govee’s apps.
+See [CLI & agent control](docs/CLI.md) and [scenes, import, music & screen matching](docs/SCENES-AND-SYNC.md) for usage and current limitations. Govee Mac does not yet import account-specific DIY or Share Space effects, offer Govee's AI generator, remote cloud control, or account linking to Alexa/Google. Wi-Fi provisioning, firmware updates, and TV camera calibration also remain in Govee’s apps. Local device groups and schedules are not implemented yet; those can be added without a cloud account.
 
 ## Architecture
 
-`GoveeKit` contains Sendable value models, LAN/BLE packet codecs, and the legacy session cipher, with no UI or third-party dependencies. `GoveeMac` contains the SwiftUI app, shared observable store, CoreBluetooth service, and a serial-queue UDP transport. Its cards, buttons, switches, sliders, tabs, badges, alerts, and inputs come from [ShadKit](https://github.com/jasonkneen/ShadKit), a SwiftUI component library based on shadcn/ui. Navigation, empty states, system menus, sheets, and color picking use native macOS components. The app remains entirely Swift. Commands are serialized per light; color-picker and slider edits are debounced and BLE writes respect backpressure. Bluetooth state is queried after commands; session keys are kept only in memory and discarded at disconnect.
+`GoveeKit` contains Sendable value models, LAN/BLE packet codecs, and the legacy session cipher, with no UI or third-party dependencies. `GoveeMac` contains the SwiftUI app, shared observable store, CoreBluetooth service, and a serial-queue UDP transport. Its buttons, switches, sliders, tabs, badges, alerts, inputs, and wrapping layout come from [ShadKit](https://github.com/jasonkneen/ShadKit), a SwiftUI component library based on shadcn/ui. Cards compose ShadKit's header/content/footer components with its palette, border and spacing in a shadow-free `FlatCard` surface. Navigation, empty states, system menus, sheets, and color picking use native macOS components. The app remains entirely Swift. Commands are serialized per light; color-picker and slider edits are debounced and BLE writes respect backpressure. Bluetooth state is queried after manual commands; session keys are kept only in memory and discarded at disconnect.
 
-ShadKit is pinned in `Package.swift` and `Package.resolved` to revision `6dbefdeb72a276708b7ca748c71ac166c0f4f17d`, which includes keyboard and accessibility support for its switches and sliders. Only its `ShadcnUI` product is linked. The standard neutral theme follows the system appearance. Discovery and settings compose these prebuilt components. Light controls use compact native macOS panels, circular swatches, and sliders; scene thumbnails are generated procedurally.
+ShadKit is pinned in `Package.swift` and `Package.resolved` to revision `6dbefdeb72a276708b7ca748c71ac166c0f4f17d`, which includes keyboard and accessibility support for its switches and sliders. Only its `ShadcnUI` product is linked. The standard neutral theme follows the system appearance. Light controls share equal-height panels, circular color swatches, and library inputs and sliders. Effect buttons wrap instead of clipping in a horizontal scroll view; scene thumbnails are generated procedurally. Connection details are always visible. Streaming updates do not repeatedly disable scene or saved-look buttons.
 
 The approved standing-lamp icon is included as a source PNG and packaged macOS ICNS. See [the icon source and regeneration instructions](docs/icon-source.md).
 

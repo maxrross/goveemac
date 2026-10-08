@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 import GoveeKit
+import ShadcnUI
 
 struct SceneBrowserView: View {
     let store: LightStore
@@ -14,39 +15,41 @@ struct SceneBrowserView: View {
     private var filtered: [NativeScene] { library.filter { (category == "All" || $0.category == category) && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)) } }
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Mac effects").font(.headline)
-                Text("Continuous colors driven by your Mac. Speed applies while an effect is running.").font(.caption).foregroundStyle(.secondary)
-                ScrollView(.horizontal, showsIndicators: false) {
-                  HStack(spacing: 8) {
+            ControlPanel {
+                ShadcnCardTitle("Mac effects")
+                ShadcnCardDescription("Continuous colors driven by your Mac. Adjust speed while an effect is running.")
+                ShadcnWrapLayout(spacing: 8, lineSpacing: 8) {
                     ForEach(LiveEffect.allCases, id: \.self) { effect in
-                        Button(effect.title) {
+                        ShadcnButton(effect.title, variant: store.live.deviceID == device.id && store.live.mode == effect.title ? .primary : .secondary, size: .small) {
                             Task { do { try await store.live.start(mode: effect.title, device: device, effect: effect) } catch { store.errorMessage = error.localizedDescription } }
-                        }.buttonStyle(.bordered).controlSize(.small).disabled(!device.isAvailable || store.live.isStarting)
+                        }.disabled(!device.isAvailable || store.live.isStarting)
                     }
-                  }
                 }
                 HStack {
                     Text("Speed").font(.caption).foregroundStyle(.secondary)
-                    Slider(value: Binding(get: { store.live.speed }, set: { store.live.speed = $0 }), in: 0.1...5).frame(maxWidth: 220)
+                    ShadcnSlider(value: Binding(get: { store.live.speed }, set: { store.live.speed = $0 }), in: 0.1...5, step: 0.1).frame(maxWidth: 220).accessibilityLabel("Effect speed")
                     Text("\(store.live.speed, specifier: "%.1f")×").font(.caption.monospacedDigit())
                 }
-            }.padding(16).background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
+            }
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Govee scenes").font(.headline)
-                    Text(store.sceneStatus[device.model] ?? "Loading your model’s library…").font(.caption).foregroundStyle(.secondary)
+                    ShadcnCardTitle("Govee scenes")
+                    ShadcnCardDescription(store.sceneStatus[device.model] ?? "Loading your model’s library…")
                 }
                 Spacer()
                 if store.loadingScenes.contains(device.model) { ProgressView().controlSize(.small) }
-                Button { Task { await store.loadScenes(model: device.model, refresh: true) } } label: { Image(systemName: "arrow.clockwise") }
+                ShadcnButton(icon: "arrow.clockwise", variant: .secondary, size: .iconSM) { Task { await store.loadScenes(model: device.model, refresh: true) } }
                     .help("Refresh Govee scene library").disabled(store.loadingScenes.contains(device.model))
-                Button("Import JSON", systemImage: "square.and.arrow.down") { importing = true }
-                    .controlSize(.small)
+                ShadcnButton("Import JSON", systemImage: "square.and.arrow.down", variant: .secondary, size: .small) { importing = true }
             }
-            HStack {
-                TextField("Search scenes", text: $query).textFieldStyle(.roundedBorder)
-                Picker("Category", selection: $category) { ForEach(categories, id: \.self) { Text($0).tag($0) } }.frame(maxWidth: 200)
+            HStack(spacing: 12) {
+                ShadcnTextField("Search scenes", text: $query).accessibilityLabel("Search scenes")
+                Menu {
+                    Picker("Category", selection: $category) { ForEach(categories, id: \.self) { Text($0).tag($0) } }
+                } label: {
+                    HStack(spacing: 8) { Text(category); Image(systemName: "chevron.down").font(.caption2) }
+                }.buttonStyle(.shadcn(.secondary)).menuIndicator(.hidden).fixedSize()
+                    .accessibilityLabel("Scene category")
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 145), spacing: 12)], spacing: 12) {
                 ForEach(filtered) { scene in
