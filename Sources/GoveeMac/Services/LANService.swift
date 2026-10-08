@@ -52,8 +52,8 @@ final class LANService: @unchecked Sendable {
         }
     }
 
-    func send(_ command: LightCommand, to address: String) async throws {
-        let data = try LANProtocol.encode(command)
+    func send(_ command: LightCommand, to address: String, model: String = "") async throws {
+        let data = try LANProtocol.encode(command, model: model)
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [self] in
                 do {

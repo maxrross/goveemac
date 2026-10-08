@@ -25,6 +25,15 @@ public enum LANProtocol {
         }
     }
 
+    public static func encode(_ command: LightCommand, model: String) throws -> Data {
+        if model == "H60B2", case .color = command,
+           let packet = BLEProtocol.encode(command, percentBrightness: true, extendedColor: true, segmentMask: 7) {
+            // H60B2 LAN segment control: bits 0–2 select all three lamp heads.
+            return try encode("ptReal", data: ["command": [packet.base64EncodedString()]])
+        }
+        return try encode(command)
+    }
+
     private static func encode(_ command: String, data: [String: Any]) throws -> Data {
         try JSONSerialization.data(withJSONObject: ["msg": ["cmd": command, "data": data]], options: [.sortedKeys])
     }

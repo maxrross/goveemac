@@ -9,6 +9,15 @@ public struct RGB: Codable, Equatable, Sendable {
         self.red = red; self.green = green; self.blue = blue
     }
 
+    public init?(hex: String) {
+        var value = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.hasPrefix("#") { value.removeFirst() }
+        guard value.utf8.count == 6, value.utf8.allSatisfy({
+            (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0)
+        }), let number = UInt32(value, radix: 16) else { return nil }
+        self.init(UInt8((number >> 16) & 255), UInt8((number >> 8) & 255), UInt8(number & 255))
+    }
+
     public var hex: String { String(format: "#%02X%02X%02X", red, green, blue) }
 }
 

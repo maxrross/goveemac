@@ -28,8 +28,11 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
     private var sessions: [String: BLESessionCipher] = [:]
     private var authProbes: [String: Task<Void, Never>] = [:]
     private var ready: Set<String> = []
+    private var writeReplies: [String: CheckedContinuation<Void, Error>] = [:]
+    private var writeTimeouts: [String: Task<Void, Never>] = [:]
     private var reconnectIDs: [String] = []
     private let authCipher = try! BLESessionCipher(key: BLESessionCipher.authenticationKey)
+    var isPoweredOn: Bool { manager?.state == .poweredOn }
 
     func scan() {
         wantsScan = true
@@ -39,7 +42,7 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
         else { reportState() }
     }
 
-    func stopScan() { wantsScan = false; manager?.stopScan() }
+    func stopScan() { wantsScan = false; if isPoweredOn { manager?.stopScan() } }
 
     func reconnect(ids: [String]) {
         reconnectIDs = ids
@@ -93,16 +96,47 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
         for command: UInt8 in [0x01, 0x04, 0x05] { try? write(BLEProtocol.query(command), id: id) }
     }
 
-    func send(_ command: LightCommand, to id: String) throws {
+    func send(_ command: LightCommand, to id: String) async throws {
         // Newer RGBIC models use a percent scale. Values above 100 can disconnect them.
         let name = peripherals[id]?.name ?? ""
-        let percent = sessions[id] != nil || name.contains("H6098") || name.contains("H6099")
-        let extended = sessions[id] != nil && (name.contains("H6098") || name.contains("H6099"))
-        guard let packet = BLEProtocol.encode(command, percentBrightness: percent, extendedColor: extended) else {
+        let range = name.range(of: "H[0-9A-F]{4}", options: .regularExpression)
+        let model = range.map { String(name[$0]) } ?? ""
+        guard let packets = BLEProtocol.commandSequence(command, model: model, encrypted: sessions[id] != nil) else {
             throw ConnectionError.message("This command is not supported over Bluetooth.")
         }
         logger.notice("Sending Bluetooth command \(command.key, privacy: .public)")
-        try write(packet, id: id)
+        for (index, packet) in packets.enumerated() {
+            if index > 0 { try await Task.sleep(for: .milliseconds(100)) }
+            let wirePacket = try sessions[id]?.encrypt(packet) ?? packet
+            try await writeCommand(wirePacket, id: id)
+        }
+    }
+
+    private func writeCommand(_ packet: Data, id: String) async throws {
+        guard let peripheral = peripherals[id], peripheral.state == .connected,
+              let characteristic = characteristics[id], ready.contains(id) else {
+            throw ConnectionError.message("Connect to the Bluetooth light first.")
+        }
+        guard characteristic.properties.contains(.write) else {
+            try writeWire(packet, id: id)
+            return
+        }
+        guard writeReplies[id] == nil else { throw ConnectionError.message("The Bluetooth light is busy. Try again in a moment.") }
+        try await withCheckedThrowingContinuation { continuation in
+            writeReplies[id] = continuation
+            writeTimeouts[id] = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled, let self else { return }
+                self.finishWrite(id: id, error: ConnectionError.message("The light did not acknowledge the Bluetooth command. Reconnect and try again."))
+            }
+            peripheral.writeValue(packet, for: characteristic, type: .withResponse)
+        }
+    }
+
+    private func finishWrite(id: String, error: Error? = nil) {
+        writeTimeouts.removeValue(forKey: id)?.cancel()
+        guard let reply = writeReplies.removeValue(forKey: id) else { return }
+        if let error { reply.resume(throwing: error) } else { reply.resume() }
     }
 
     private func write(_ packet: Data, id: String) throws {
@@ -115,7 +149,7 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
               let characteristic = characteristics[id] else {
             throw ConnectionError.message("Connect to the Bluetooth light first.")
         }
-        // Prefer write-without-response as used by Govee-Sync. Respect BLE backpressure.
+        // Authentication and status queries prefer no-response writes.
         if characteristic.properties.contains(.writeWithoutResponse) {
             if peripheral.canSendWriteWithoutResponse {
                 peripheral.writeValue(packet, for: characteristic, type: .withoutResponse)
@@ -236,6 +270,12 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
         // Only log framing and length; never device identity or session material.
         logger.debug("Bluetooth reply length \(data.count)")
         let id = peripheral.identifier.uuidString
+        if data.count == 20, let authenticationReply = try? authCipher.decrypt(data),
+           authenticationReply[0] == 0xE7, authenticationReply[1] == 0x02,
+           authenticationReply.reduce(0, ^) == 0 {
+            logger.debug("Bluetooth session finish reply received")
+            return
+        }
         if sessions[id] == nil, data.count == 20, let handshake = try? authCipher.decrypt(data),
            handshake[0] == 0xE7, handshake[1] == 0x01, handshake.reduce(0, ^) == 0 {
             do {
@@ -273,7 +313,8 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
     }
 
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        if let error { onConnection?(peripheral.identifier.uuidString, true, "Bluetooth write failed: \(error.localizedDescription)") }
+        logger.debug("Acknowledged Bluetooth write: \(error?.localizedDescription ?? "success", privacy: .public)")
+        finishWrite(id: peripheral.identifier.uuidString, error: error)
     }
 
     private func startKeepAlive() {
@@ -288,6 +329,7 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
     }
 
     private func cleanup(_ id: String) {
+        finishWrite(id: id, error: ConnectionError.message("The light disconnected before completing the command."))
         characteristics.removeValue(forKey: id)
         pending.removeValue(forKey: id)
         subscribed.remove(id)

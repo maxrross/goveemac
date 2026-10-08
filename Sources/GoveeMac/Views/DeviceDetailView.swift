@@ -121,7 +121,7 @@ struct DeviceDetailView: View {
                 }
                 Spacer(minLength: 0)
             }
-            Text(device.connection == .demo ? "This virtual light is for previewing the app." : "Power and brightness are read from the light. Commands are shown immediately and checked against replies. Colors in unsupported effect modes show the last requested RGB color.")
+            Text(device.connection == .demo ? "This virtual light is for previewing the app." : "Power and brightness are read from the light. Color shows the last requested value when the light reports only its mode. Check the physical light to confirm a color change.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             if let sent = device.lastSent {
                 Text("Last command sent \(sent.formatted(date: .omitted, time: .standard))").font(.caption2).foregroundStyle(.secondary)

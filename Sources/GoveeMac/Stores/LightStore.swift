@@ -6,7 +6,11 @@ import Observation
 @Observable @MainActor
 final class LightStore {
     var devices: [LightDevice] = []
-    var selectedID: String?
+    var selectedID: String? {
+        didSet {
+            if let id = selectedID, !id.hasPrefix("demo:") { defaults.set(id, forKey: "selectedLight") }
+        }
+    }
     var favorites: Set<String> = []
     var customPresets: [LightPreset] = []
     var isScanningLAN = false
@@ -47,9 +51,10 @@ final class LightStore {
         }
         for record in defaults.array(forKey: "rememberedBluetooth") as? [[String: String]] ?? [] {
             guard let uuid = record["uuid"], let name = record["name"], let model = record["model"] else { continue }
-            devices.append(LightDevice(id: "ble:\(uuid)", name: names["ble:\(uuid)"] ?? name, model: model, connection: .bluetooth, address: uuid))
+            devices.append(LightDevice(id: "ble:\(uuid)", name: names["ble:\(uuid)"] ?? DeviceCatalog.friendlyName(model: model) ?? name, model: model, connection: .bluetooth, address: uuid))
         }
-        selectedID = devices.first?.id
+        let savedSelection = defaults.string(forKey: "selectedLight")
+        selectedID = devices.contains(where: { $0.id == savedSelection }) ? savedSelection : devices.first?.id
         bluetooth.onDiscovery = { [weak self] id, name in self?.discoveredBluetooth(id: id, name: name) }
         bluetooth.onConnection = { [weak self] id, ready, error in
             guard let self, let index = self.devices.firstIndex(where: { $0.id == "ble:\(id)" }) else { return }
@@ -57,9 +62,10 @@ final class LightStore {
             self.devices[index].isConnecting = false
             self.devices[index].lastSeen = ready ? Date() : nil
             if ready {
-                let records = self.devices.filter { $0.connection == .bluetooth && ($0.isAvailable || $0.hasKnownState) }.map {
-                    ["uuid": $0.address, "name": $0.name, "model": $0.model]
-                }
+                var records = self.defaults.array(forKey: "rememberedBluetooth") as? [[String: String]] ?? []
+                records.removeAll { $0["uuid"] == id }
+                let device = self.devices[index]
+                records.append(["uuid": id, "name": device.name, "model": device.model])
                 self.defaults.set(records, forKey: "rememberedBluetooth")
             }
             if let error { self.errorMessage = error }
@@ -83,10 +89,10 @@ final class LightStore {
                 self.devices[index].hasKnownState = true
             case 0x04:
                 self.devices[index].state.brightness = max(1, min(100, percent ? Int(data[2]) : Int((Double(data[2]) / 254 * 100).rounded())))
-            case 0x05 where data.count >= 6 && [0x02, 0x0D].contains(data[2]):
+            case 0x05 where !DeviceCatalog.hasModeOnlyColorReply(model: self.devices[index].model) && data.count >= 6 && [0x02, 0x0D].contains(data[2]):
                 self.devices[index].state.color = RGB(data[3], data[4], data[5])
                 self.devices[index].state.temperature = 0
-            case 0x05 where data.count >= 7 && data[2] == 0x15 && data[3] == 1:
+            case 0x05 where !DeviceCatalog.hasModeOnlyColorReply(model: self.devices[index].model) && data.count >= 7 && data[2] == 0x15 && data[3] == 1:
                 self.devices[index].state.color = RGB(data[4], data[5], data[6])
                 self.devices[index].state.temperature = 0
             default: break
@@ -155,6 +161,7 @@ final class LightStore {
             guard !Task.isCancelled, let self else { return }
             self.bluetooth.stopScan()
             self.isScanningBluetooth = false
+            if !self.bluetooth.isPoweredOn { return }
             if !self.devices.contains(where: { $0.connection == .bluetooth }) {
                 self.bluetoothStatus = "No nearby lights found. Move closer and close Govee Home before retrying."
             } else { self.bluetoothStatus = "Select a Bluetooth light and click Connect." }
@@ -170,7 +177,11 @@ final class LightStore {
         bluetooth.connect(id: device.address)
     }
 
-    func disconnect(_ device: LightDevice) { bluetooth.disconnect(id: device.address) }
+    func disconnect(_ device: LightDevice) {
+        bluetooth.disconnect(id: device.address)
+        let records = (defaults.array(forKey: "rememberedBluetooth") as? [[String: String]] ?? []).filter { $0["uuid"] != device.address }
+        defaults.set(records, forKey: "rememberedBluetooth")
+    }
 
     func addManual(address: String, name: String) async -> Bool {
         let host = address.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -209,7 +220,7 @@ final class LightStore {
                 devices[index].isAvailable = true
                 devices[index].lastSeen = Date()
             } else {
-                var light = LightDevice(id: id, name: names[id] ?? "Govee \(model)", model: model, connection: .lan, address: host)
+                var light = LightDevice(id: id, name: names[id] ?? DeviceCatalog.friendlyName(model: model) ?? "Govee \(model)", model: model, connection: .lan, address: host)
                 light.isAvailable = true; light.lastSeen = Date()
                 devices.append(light)
                 if selectedID == nil { selectedID = id }
@@ -217,7 +228,11 @@ final class LightStore {
             Task { try? await lan.send(.status, to: host) }
         case .status(let state):
             guard let index = devices.firstIndex(where: { $0.address == host && $0.connection == .lan }) else { return }
-            devices[index].state = state
+            var reported = state
+            if DeviceCatalog.hasModeOnlyColorReply(model: devices[index].model), state.color == RGB(0, 0, 0), state.temperature == 0 {
+                reported.color = devices[index].state.color
+            }
+            devices[index].state = reported
             devices[index].hasKnownState = true
             devices[index].isAvailable = true
             devices[index].lastSeen = Date()
@@ -229,7 +244,7 @@ final class LightStore {
         guard !devices.contains(where: { $0.id == key }) else { return }
         let range = name.range(of: "H[0-9A-F]{4}", options: .regularExpression)
         let model = range.map { String(name[$0]) } ?? "Govee BLE"
-        devices.append(LightDevice(id: key, name: names[key] ?? name, model: model, connection: .bluetooth, address: id))
+        devices.append(LightDevice(id: key, name: names[key] ?? DeviceCatalog.friendlyName(model: model) ?? name, model: model, connection: .bluetooth, address: id))
         if selectedID == nil { selectedID = key }
     }
 
@@ -269,8 +284,8 @@ final class LightStore {
         }
         do {
             switch device.connection {
-            case .lan: try await lan.send(command, to: device.address)
-            case .bluetooth: try bluetooth.send(command, to: device.address)
+            case .lan: try await lan.send(command, to: device.address, model: device.model)
+            case .bluetooth: try await bluetooth.send(command, to: device.address)
             case .demo: break
             }
             if let index = devices.firstIndex(where: { $0.id == id }) {

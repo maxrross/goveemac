@@ -34,5 +34,7 @@ chmod +x "$APP_BUNDLE/Contents/MacOS/GoveeMac"
 cp "$ROOT_DIR/Resources/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
 cp "$ROOT_DIR/Resources/GoveeMac.icns" "$APP_BUNDLE/Contents/Resources/GoveeMac.icns"
 cp "$ROOT_DIR/LICENSE" "$ROOT_DIR/THIRD_PARTY_NOTICES.md" "$APP_BUNDLE/Contents/Resources/"
-codesign --force --sign - "$APP_BUNDLE"
+# An existing development identity keeps macOS Bluetooth permission stable
+# across local rebuilds. CI and unsigned community builds default to ad hoc.
+codesign --force --sign "${GOVEE_MAC_SIGNING_IDENTITY:--}" "$APP_BUNDLE"
 echo "Built $APP_BUNDLE"

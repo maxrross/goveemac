@@ -10,6 +10,8 @@ struct LightControlsView: View {
     @State private var editingTemperature = false
     @State private var colorMode = "Color"
     @State private var pickerColor = Brand.accent
+    @State private var customHex = ""
+    @FocusState private var editingHex: Bool
 
     private let swatches: [RGB] = [RGB(255, 86, 76), RGB(255, 167, 64), RGB(250, 218, 82), RGB(73, 200, 133), RGB(40, 185, 205), RGB(68, 132, 250), RGB(165, 104, 250), RGB(247, 119, 191)]
 
@@ -76,8 +78,19 @@ struct LightControlsView: View {
                     }.padding(.vertical, 3)
                     ColorPicker("Custom color", selection: Binding(get: { pickerColor }, set: { color in
                         pickerColor = color
+                        if !editingHex { customHex = RGB(color: color).hex }
                         store.send(.color(RGB(color: color)), to: device.id, debounce: true)
                     }), supportsOpacity: false)
+                    HStack {
+                        TextField("#24A5FF", text: $customHex)
+                            .font(.system(.body, design: .monospaced))
+                            .textFieldStyle(.roundedBorder)
+                            .accessibilityLabel("Custom hex color")
+                            .focused($editingHex)
+                            .onSubmit { applyCustomColor() }
+                        Button("Apply color") { applyCustomColor() }
+                            .disabled(RGB(hex: customHex) == nil || store.busyIDs.contains(device.id))
+                    }
                     Text(device.supportsTemperature ? "Pick a favorite, or find your own." : "Color control · white temperature requires Wi-Fi.")
                         .font(.caption2).foregroundStyle(.secondary)
                 } else {
@@ -98,6 +111,15 @@ struct LightControlsView: View {
         if !editingBrightness { brightness = Double(device.state.brightness) }
         if !editingTemperature { temperature = Double(device.state.temperature > 0 ? device.state.temperature : 4000) }
         pickerColor = device.state.color.swiftUIColor
+        if !editingHex { customHex = device.state.color.hex }
         colorMode = device.state.temperature > 0 && device.supportsTemperature ? "White" : "Color"
+    }
+
+    private func applyCustomColor() {
+        guard let rgb = RGB(hex: customHex) else { return }
+        editingHex = false
+        customHex = rgb.hex
+        pickerColor = rgb.swiftUIColor
+        store.send(.color(rgb), to: device.id)
     }
 }
