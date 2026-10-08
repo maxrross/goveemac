@@ -22,11 +22,15 @@ public enum LANProtocol {
         case .color(let rgb): try encode("colorwc", data: ["color": ["r": Int(rgb.red), "g": Int(rgb.green), "b": Int(rgb.blue)], "colorTemInKelvin": 0])
         case .temperature(let value): try encode("colorwc", data: ["color": ["r": 0, "g": 0, "b": 0], "colorTemInKelvin": max(2000, min(9000, value))])
         case .status: try encode("devStatus", data: [:])
-        case .head: throw ProtocolEncodingError.unsupportedHead
+        case .head, .scene: throw ProtocolEncodingError.unsupportedHead
         }
     }
 
     public static func encode(_ command: LightCommand, model: String) throws -> Data {
+        if case .scene(let scene) = command {
+            guard scene.model == model, let packets = scene.packets else { throw SceneError.wrongModel }
+            return try encode("ptReal", data: ["command": packets.map { $0.base64EncodedString() }])
+        }
         if case .head = command {
             guard let packet = BLEProtocol.encode(command, model: model, encrypted: false) else {
                 throw ProtocolEncodingError.unsupportedHead

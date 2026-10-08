@@ -17,7 +17,7 @@ struct ContentView: View {
                     DeviceDetailView(store: store, device: device)
                         .id(device.id)
                 } else {
-                    WelcomeView(store: store) { kind in
+                    WelcomeView { kind in
                         discovery = DiscoveryRequest(kind: kind)
                     }
                 }
@@ -40,6 +40,7 @@ struct ContentView: View {
                 }
             }
         }
+        .toolbarBackground(.hidden, for: .windowToolbar)
         .sheet(item: $discovery) { request in
             DiscoveryView(store: store, initialKind: request.kind).shadcnSurface(glass: false)
         }

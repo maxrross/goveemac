@@ -18,7 +18,7 @@ public enum BLEProtocol {
         case .power(let value): packet(command: 0x01, payload: [value ? 1 : 0])
         case .brightness(let value): packet(command: 0x04, payload: [UInt8((Double(max(1, min(100, value))) / 100 * (percentBrightness ? 100 : 254)).rounded())])
         case .color(let rgb): packet(command: 0x05, payload: extendedColor ? [0x15, 0x01, rgb.red, rgb.green, rgb.blue, 0, 0, 0, 0, 0, UInt8(segmentMask & 255), UInt8(segmentMask >> 8)] : [0x02, rgb.red, rgb.green, rgb.blue])
-        case .temperature, .status, .head: nil
+        case .temperature, .status, .head, .scene: nil
         }
     }
 
@@ -38,6 +38,7 @@ public enum BLEProtocol {
     }
 
     public static func commandSequence(_ command: LightCommand, model: String, encrypted: Bool) -> [Data]? {
+        if case .scene(let scene) = command { return scene.model == model ? scene.packets : nil }
         guard let commandPacket = encode(command, model: model, encrypted: encrypted) else { return nil }
         // Leave scene mode before addressing the Tree lamp's three RGBIC heads.
         if model == "H60B2", case .color = command,

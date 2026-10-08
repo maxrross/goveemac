@@ -3,21 +3,17 @@ import GoveeKit
 import ShadcnUI
 
 struct WelcomeView: View {
-    let store: LightStore
     let discover: (ConnectionKind) -> Void
 
     var body: some View {
         ContentUnavailableView {
             Label("Add your first light", systemImage: "lamp.floor")
         } actions: {
-            VStack(spacing: Space.x3) {
-                HStack(spacing: Space.x3) {
-                    ShadcnButton("Bluetooth", systemImage: ConnectionKind.bluetooth.symbol) { discover(.bluetooth) }
-                        .accessibilityLabel("Find Bluetooth lights")
-                    ShadcnButton("Wi-Fi", systemImage: "wifi", variant: .outline) { discover(.lan) }
-                        .accessibilityLabel("Find Wi-Fi lights")
-                }
-                ShadcnButton("Try demo", variant: .link, size: .small) { store.enableDemo() }
+            HStack(spacing: Space.x3) {
+                ShadcnButton("Bluetooth", systemImage: ConnectionKind.bluetooth.symbol) { discover(.bluetooth) }
+                    .accessibilityLabel("Find Bluetooth lights")
+                ShadcnButton("Wi-Fi", systemImage: "wifi", variant: .outline) { discover(.lan) }
+                    .accessibilityLabel("Find Wi-Fi lights")
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }

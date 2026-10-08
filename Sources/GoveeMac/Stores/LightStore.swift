@@ -8,7 +8,7 @@ final class LightStore {
     var devices: [LightDevice] = []
     var selectedID: String? {
         didSet {
-            if let id = selectedID, !id.hasPrefix("demo:") { defaults.set(id, forKey: "selectedLight") }
+            if let id = selectedID { defaults.set(id, forKey: "selectedLight") }
         }
     }
     var favorites: Set<String> = []
@@ -19,7 +19,14 @@ final class LightStore {
     var bluetoothStatus = "Find compatible Govee lights nearby."
     var errorMessage: String?
     var busyIDs: Set<String> = []
-    var isDemo = false
+    var live = LiveController()
+    var scenes: [String: [NativeScene]] = [:]
+    @ObservationIgnored var sceneLoads: [String: Task<Void, Never>] = [:]
+    var loadingScenes: Set<String> = []
+    var sceneStatus: [String: String] = [:]
+    var activeScenes: [String: String] = [:]
+    var cliStatus = "Starting local control…"
+    @ObservationIgnored private let controlServer = ControlServer()
 
     @ObservationIgnored private let lan = LANService()
     @ObservationIgnored private let bluetooth = BluetoothService()
@@ -39,8 +46,7 @@ final class LightStore {
     var onCount: Int { devices.filter { $0.hasKnownState && $0.state.isOn && $0.isAvailable }.count }
 
     init() {
-        defaults = ProcessInfo.processInfo.arguments.contains("--demo")
-            ? UserDefaults(suiteName: "community.goveemac.preview")! : .standard
+        defaults = .standard
         names = defaults.dictionary(forKey: "lightNames") as? [String: String] ?? [:]
         favorites = Set(defaults.stringArray(forKey: "favorites") ?? [])
         if let data = defaults.data(forKey: "headSettings"),
@@ -105,16 +111,21 @@ final class LightStore {
             }
             self.devices[index].lastSeen = Date()
         }
-        if ProcessInfo.processInfo.arguments.contains("--demo") { enableDemo() }
+        live.store = self
     }
 
     func start() async {
         guard !started else { return }
         started = true
-        if !isDemo {
-            bluetooth.reconnect(ids: devices.filter { $0.connection == .bluetooth }.map(\.address))
-            await scanLAN()
-        }
+        do {
+            try controlServer.start { [weak self] request in
+                guard let self else { return ControlReply(ok: false, message: "App is closing.") }
+                return await self.handleControl(request)
+            }
+            cliStatus = "Local CLI ready"
+        } catch { cliStatus = error.localizedDescription }
+        bluetooth.reconnect(ids: devices.filter { $0.connection == .bluetooth }.map(\.address))
+        await scanLAN()
         polling = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(12))
@@ -261,6 +272,9 @@ final class LightStore {
     }
 
     func send(_ command: LightCommand, to id: String, debounce: Bool = false) {
+        if live.deviceID == id {
+            Task { await live.stop(restore: false); self.send(command, to: id, debounce: debounce) }; return
+        }
         if case .color = command { cancelHeadEdits(to: id) }
         if case .temperature = command { cancelHeadEdits(to: id) }
         if case .head = command { debounceTasks["\(id):color"]?.cancel() }
@@ -276,16 +290,9 @@ final class LightStore {
     }
 
     private func enqueue(_ commands: [LightCommand], to id: String) {
-        let previous = commandTails[id]
-        commandTails[id] = Task { [weak self] in
-            await previous?.value
-            guard let self, !Task.isCancelled else { return }
-            self.busyIDs.insert(id)
-            defer { self.busyIDs.remove(id) }
-            for command in commands {
-                guard await self.execute(command, to: id) else { return }
-            }
-            if let device = self.devices.first(where: { $0.id == id }), device.connection != .demo {
+        Task { [weak self] in
+            guard let self, await self.perform(commands, to: id) else { return }
+            if let device = self.devices.first(where: { $0.id == id }) {
                 try? await Task.sleep(for: .milliseconds(250))
                 if device.connection == .lan { try? await self.lan.send(.status, to: device.address) }
                 else { self.bluetooth.refresh(id: device.address) }
@@ -293,7 +300,36 @@ final class LightStore {
         }
     }
 
-    private func execute(_ command: LightCommand, to id: String) async -> Bool {
+    func perform(_ commands: [LightCommand], to id: String, persist: Bool = true) async -> Bool {
+        let previous = commandTails[id]
+        let task = Task { [weak self] in
+            await previous?.value
+            guard let self, !Task.isCancelled else { return false }
+            self.busyIDs.insert(id)
+            defer { self.busyIDs.remove(id) }
+            for command in commands {
+                guard await self.execute(command, to: id, persist: persist) else { return false }
+            }
+            return true
+        }
+        commandTails[id] = Task { _ = await task.value }
+        return await task.value
+    }
+
+    func prepareForLive(to id: String) async {
+        for key in debounceTasks.keys where key.hasPrefix("\(id):") { debounceTasks[key]?.cancel() }
+        await commandTails[id]?.value
+    }
+
+    func liveFrame(_ colors: [RGB], to id: String) async -> Bool {
+        guard let device = devices.first(where: { $0.id == id }), !colors.isEmpty else { return false }
+        let commands: [LightCommand] = device.heads.isEmpty
+            ? [.color(colors.count == 1 ? colors[0] : colors.reduce(colors[0]) { LiveColors.mix($0, $1, amount: 0.5) })]
+            : device.heads.map { .head(LightHeadState(id: $0.id, color: colors[$0.id % colors.count], hasRequestedState: true)) }
+        return await perform(commands, to: id, persist: false)
+    }
+
+    private func execute(_ command: LightCommand, to id: String, persist: Bool = true) async -> Bool {
         guard let device = devices.first(where: { $0.id == id }), device.isAvailable else {
             errorMessage = "The light is unavailable. Discover it again or connect over Bluetooth."; return false
         }
@@ -301,26 +337,29 @@ final class LightStore {
             switch device.connection {
             case .lan: try await lan.send(command, to: device.address, model: device.model)
             case .bluetooth: try await bluetooth.send(command, to: device.address)
-            case .demo: break
             }
             if let index = devices.firstIndex(where: { $0.id == id }) {
+                switch command { case .color, .head, .temperature: activeScenes[id] = nil; default: break }
                 devices[index].state = command.applying(to: devices[index].state)
                 switch command {
                 case .head(var head):
                     guard devices[index].heads.indices.contains(head.id) else { return false }
                     head.hasRequestedState = true
                     devices[index].heads[head.id] = head
-                    persistHeads(for: devices[index])
+                    if persist { persistHeads(for: devices[index]) }
                 case .color(let color):
                     devices[index].heads = devices[index].heads.map {
                         LightHeadState(id: $0.id, color: color, hasRequestedState: true)
                     }
-                    persistHeads(for: devices[index])
+                    if persist { persistHeads(for: devices[index]) }
+                case .scene(let scene):
+                    activeScenes[id] = scene.name
+                    for headIndex in devices[index].heads.indices { devices[index].heads[headIndex].hasRequestedState = false }
                 case .temperature:
                     for headIndex in devices[index].heads.indices {
                         devices[index].heads[headIndex].hasRequestedState = false
                     }
-                    persistHeads(for: devices[index])
+                    if persist { persistHeads(for: devices[index]) }
                 default: break
                 }
                 // Sending brightness/color cannot establish an unknown power state.
@@ -332,6 +371,7 @@ final class LightStore {
     }
 
     func apply(_ preset: LightPreset, to id: String) {
+        if live.deviceID == id { Task { await live.stop(restore: false); self.apply(preset, to: id) }; return }
         guard let device = devices.first(where: { $0.id == id }) else { return }
         // Cancel stale color edits so a delayed picker event cannot overwrite a preset.
         debounceTasks["\(id):color"]?.cancel()
@@ -357,7 +397,8 @@ final class LightStore {
         let label = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !label.isEmpty, let index = devices.firstIndex(where: { $0.id == id }) else { return }
         devices[index].name = label
-        if devices[index].connection != .demo { names[id] = label; persistMetadata() }
+        names[id] = label
+        persistMetadata()
     }
 
     func toggleFavorite(_ id: String) {
@@ -388,7 +429,7 @@ final class LightStore {
     }
 
     private func persistHeads(for device: LightDevice) {
-        guard !device.heads.isEmpty, device.connection != .demo else { return }
+        guard !device.heads.isEmpty else { return }
         savedHeads[device.id] = device.heads
         if let data = try? JSONEncoder().encode(savedHeads) { defaults.set(data, forKey: "headSettings") }
     }
@@ -404,41 +445,14 @@ final class LightStore {
         persistManualAddresses()
     }
 
-    func enableDemo() {
-        guard !isDemo else { return }
-        isDemo = true
-        for (id, name, model, color, brightness) in [
-            ("demo:desk", "Desk light", "Demo light", RGB(36, 194, 174), 75),
-            ("demo:corner", "Corner lamp", "Demo light", RGB(255, 159, 90), 40),
-            ("demo:tree", "Tree lamp", "H60B2", RGB(36, 165, 255), 70)
-        ] {
-            var light = LightDevice(id: id, name: name, model: model, connection: .demo)
-            light.isAvailable = true; light.hasKnownState = true
-            light.state = LightState(isOn: true, brightness: brightness, color: color)
-            if id == "demo:tree" {
-                light.heads = [LightHeadState(id: 0, color: RGB(36, 165, 255), hasRequestedState: true),
-                               LightHeadState(id: 1, color: RGB(73, 200, 133), brightness: 70, hasRequestedState: true),
-                               LightHeadState(id: 2, color: RGB(174, 107, 255), hasRequestedState: true)]
-            }
-            devices.append(light)
-        }
-        selectedID = "demo:desk"
-    }
-
-    func disableDemo() {
-        devices.removeAll { $0.connection == .demo }
-        isDemo = false
-        selectedID = devices.first?.id
-    }
-
     private func persistMetadata() {
         defaults.set(names, forKey: "lightNames")
-        defaults.set(Array(favorites.filter { !$0.hasPrefix("demo:") }), forKey: "favorites")
+        defaults.set(Array(favorites), forKey: "favorites")
     }
     private func persistManualAddresses() {
         defaults.set(devices.filter { $0.id.hasPrefix("manual:") }.map(\.address), forKey: "manualAddresses")
     }
-    private func persistPresets() {
+    func persistPresets() {
         if let data = try? JSONEncoder().encode(customPresets) { defaults.set(data, forKey: "presets") }
     }
 }

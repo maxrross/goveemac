@@ -22,19 +22,17 @@ public struct RGB: Codable, Equatable, Sendable {
 }
 
 public enum ConnectionKind: String, Codable, Sendable {
-    case lan, bluetooth, demo
+    case lan, bluetooth
     public var title: String {
         switch self {
         case .lan: "Local Wi-Fi"
         case .bluetooth: "Bluetooth"
-        case .demo: "Demo"
         }
     }
     public var symbol: String {
         switch self {
         case .lan: "wifi"
         case .bluetooth: "antenna.radiowaves.left.and.right"
-        case .demo: "sparkles"
         }
     }
 }
@@ -85,6 +83,7 @@ public struct LightDevice: Identifiable, Sendable {
 public enum LightCommand: Equatable, Sendable {
     case power(Bool), brightness(Int), color(RGB), temperature(Int), status
     case head(LightHeadState)
+    case scene(NativeScene)
 
     public var key: String {
         switch self {
@@ -93,6 +92,7 @@ public enum LightCommand: Equatable, Sendable {
         case .color, .temperature: "color"
         case .status: "status"
         case .head(let head): "head:\(head.id)"
+        case .scene: "scene"
         }
     }
 
@@ -104,7 +104,7 @@ public enum LightCommand: Equatable, Sendable {
         case .color(let rgb): result.color = rgb; result.temperature = 0
         case .temperature(let kelvin): result.temperature = max(2000, min(9000, kelvin))
         case .status: break
-        case .head: result.temperature = 0
+        case .head, .scene: result.temperature = 0
         }
         return result
     }

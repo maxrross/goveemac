@@ -50,7 +50,7 @@ struct SidebarView: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Space.x1) {
                 Text(device.name).lineLimit(1)
-                Text(device.connection == .demo ? "Demo light" : "\(device.connection.title) · \(device.status)")
+                Text("\(device.connection.title) · \(device.status)")
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }.frame(maxWidth: .infinity, alignment: .leading)
         }.padding(.vertical, Space.x1)

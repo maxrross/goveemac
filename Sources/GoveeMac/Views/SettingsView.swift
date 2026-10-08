@@ -20,28 +20,22 @@ struct SettingsView: View {
                             ShadcnSwitch(isOn: $showMenuBar).accessibilityLabel("Show quick controls in the menu bar")
                         }
                         ShadcnSeparator()
-                        LabeledContent("Version", value: "0.1.0").font(.callout)
+                        LabeledContent("Version", value: "0.2.0").font(.callout)
                     }
                 }
                 ShadcnCard {
-                    ShadcnCardHeader {
-                        ShadcnCardTitle("Preview")
-                        ShadcnCardDescription("Demo lights are virtual and labeled in the app.")
-                    }
+                    ShadcnCardHeader { ShadcnCardTitle("CLI & agents") }
                     ShadcnCardContent {
-                        HStack {
-                            Text("Explore with demo lights").font(.callout)
-                            Spacer()
-                            ShadcnSwitch(isOn: Binding(get: { store.isDemo }, set: {
-                                if $0 { store.enableDemo() } else { store.disableDemo() }
-                            })).accessibilityLabel("Explore with demo lights")
-                        }
+                        Text(store.cliStatus).font(.callout)
+                        Text("The bundled govee command controls this app using a socket accessible only to your Mac user.").font(.caption).foregroundStyle(.secondary)
+                        Text(Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/govee").path)
+                            .font(.caption.monospaced()).textSelection(.enabled)
                     }
                 }
                 ShadcnCard {
                     ShadcnCardHeader {
                         ShadcnCardTitle("Community")
-                        ShadcnCardDescription("An independent, community-built project. Not affiliated with Govee. No accounts, API keys, analytics, or cloud requests.")
+                        ShadcnCardDescription("An independent, community-built project. Not affiliated with Govee. No account or API key required. Govee scene definitions are downloaded on request and cached locally. Screen and audio data stays on your Mac.")
                     }
                     ShadcnCardContent {
                         Link("Source code & contributions", destination: Brand.repository)

@@ -104,7 +104,7 @@ final class BluetoothService: NSObject, @preconcurrency CBCentralManagerDelegate
         guard let packets = BLEProtocol.commandSequence(command, model: model, encrypted: sessions[id] != nil) else {
             throw ConnectionError.message("This command is not supported over Bluetooth.")
         }
-        logger.notice("Sending Bluetooth command \(command.key, privacy: .public)")
+        logger.debug("Sending Bluetooth command \(command.key, privacy: .public)")
         for (index, packet) in packets.enumerated() {
             if index > 0 { try await Task.sleep(for: .milliseconds(100)) }
             let wirePacket = try sessions[id]?.encrypt(packet) ?? packet

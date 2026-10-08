@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .executable(name: "GoveeMac", targets: ["GoveeMac"]),
+        .executable(name: "govee", targets: ["GoveeCLI"]),
         .library(name: "GoveeKit", targets: ["GoveeKit"])
     ],
     dependencies: [
@@ -14,6 +15,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "GoveeKit"),
+        .executableTarget(name: "GoveeCLI", dependencies: ["GoveeKit"]),
         .executableTarget(name: "GoveeMac", dependencies: [
             "GoveeKit",
             .product(name: "ShadcnUI", package: "ShadKit")

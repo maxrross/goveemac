@@ -29,7 +29,7 @@ OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
 STAGING_DIR="$(mktemp -d "$OUTPUT_DIR/.govee-notary.XXXXXX")"
 STAGED_APP="$STAGING_DIR/Govee Mac.app"
 ditto "$INPUT_APP" "$STAGED_APP"
-# The current SwiftPM app has one executable and no nested code bundles.
+# The CLI is the only nested executable; frameworks need explicit support.
 for folder in Frameworks XPCServices PlugIns; do
   if [[ -d "$STAGED_APP/Contents/$folder" ]]; then
     echo "Sign nested code explicitly before extending this workflow: $folder" >&2
@@ -39,7 +39,13 @@ done
 
 # Validate the saved credentials without printing or placing secrets in the repo.
 xcrun notarytool history --keychain-profile "$GOVEE_NOTARY_PROFILE" --output-format json > /dev/null
-codesign --force --sign "$GOVEE_RELEASE_SIGNING_IDENTITY" --options runtime --timestamp "$STAGED_APP"
+CLI="$STAGED_APP/Contents/MacOS/govee"
+[[ -x "$CLI" ]] || { echo "Bundled CLI is missing." >&2; exit 2; }
+CLI_ARCHS="$(lipo "$CLI" -archs)"
+[[ "$CLI_ARCHS" == "arm64 x86_64" || "$CLI_ARCHS" == "x86_64 arm64" ]] || { echo "Build a universal CLI first." >&2; exit 2; }
+codesign --force --sign "$GOVEE_RELEASE_SIGNING_IDENTITY" --identifier community.goveemac.cli --options runtime --timestamp "$CLI"
+codesign --verify --strict "$CLI"
+codesign --force --sign "$GOVEE_RELEASE_SIGNING_IDENTITY" --entitlements "$PROJECT_DIR/Resources/Entitlements.plist" --options runtime --timestamp "$STAGED_APP"
 codesign --verify --strict "$STAGED_APP"
 ditto -c -k --sequesterRsrc --keepParent "$STAGED_APP" "$STAGING_DIR/submission.zip"
 echo "Notarization files are retained at $STAGING_DIR if processing fails or times out."
