@@ -5,7 +5,7 @@ Govee's transports and packet formats vary by model and firmware. We are buildin
 | Model | Connection | Evidence | Status |
 | --- | --- | --- | --- |
 | H6195 | Bluetooth LE | Govee-Sync's upstream author reports this as their primary tested model | Upstream reference; not independently verified by Govee Mac |
-| H60B2 Tree Floor Lamp | Bluetooth LE | Encrypted session and power/brightness queries verified; physical power-off confirmed by the owner | Power verified; RGB remains under investigation |
+| H60B2 Tree Floor Lamp | Bluetooth LE | Encrypted session and power/brightness queries verified; physical power-off and custom red on all three heads confirmed by the owner | Power and all-head RGB verified; brightness state readback verified |
 | H60B2 Tree Floor Lamp | Local Wi-Fi | All-three-head `ptReal` RGB packet implemented from published H60B2 research | Protocol tests pass; local hardware verification pending |
 | H6098 | Bluetooth LE | Encrypted legacy handshake and valid power/brightness/mode replies verified | State queries work; owner reported physical controls did not respond |
 | LAN-enabled models | Local Wi-Fi | Codec tests and documented Govee UDP protocol | Physical model reports welcome |

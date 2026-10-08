@@ -27,7 +27,7 @@ This is an early community release. Device support varies by model and firmware;
 - Add a light by IPv4 address when multicast discovery is blocked.
 - Preview everything with labeled demo lights, without changing physical hardware.
 
-Wi-Fi and Bluetooth read power and brightness replies from the light. Supported solid-color reply formats update RGB; mode-only replies retain the last requested RGB. Bluetooth controls are enabled only after a valid state response. A working connection does not guarantee every color format works on every model. H60B2 power has been physically confirmed; its RGB controls are still under investigation.
+Wi-Fi and Bluetooth read power and brightness replies from the light. Supported solid-color reply formats update RGB; mode-only replies retain the last requested RGB. Bluetooth controls are enabled only after a valid state response. A working connection does not guarantee every color format works on every model. H60B2 power and custom RGB on all three heads have been physically confirmed.
 
 Encrypted legacy Bluetooth sessions (`e701`/`e702`, AES-ECB + RC4 framing) are negotiated automatically when plain state queries go unanswered. This is required by the H6098 tested during development. Newer AES-GCM session variants are not yet implemented.
 
@@ -35,7 +35,7 @@ Encrypted legacy Bluetooth sessions (`e701`/`e702`, AES-ECB + RC4 framing) are n
 
 ### Download
 
-Prebuilt downloads are not published yet while physical device compatibility is being verified. Build from source below; the universal packaging script supports Apple Silicon and Intel Macs running **macOS 14 Sonoma or later**.
+Download the universal community preview from [Releases](https://github.com/maxrross/goveemac/releases). It supports Apple Silicon and Intel Macs running **macOS 14 Sonoma or later**. Model support is listed in the [compatibility guide](docs/COMPATIBILITY.md).
 
 Default builds are **ad-hoc signed development builds, not Apple-notarized releases**. macOS may require you to approve the app in System Settings → Privacy & Security after the first launch attempt.
 
