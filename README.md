@@ -6,7 +6,6 @@
 <p align="center"><strong>Your lights. Your Mac.</strong><br>Native, local control for Govee lights. Built by the community.</p>
 
 <p align="center">
-  <a href="https://github.com/maxrross/goveemac/actions/workflows/ci.yml"><img src="https://github.com/maxrross/goveemac/actions/workflows/ci.yml/badge.svg" alt="Build and tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-14a392" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-333333" alt="macOS 14 or later">
 </p>
