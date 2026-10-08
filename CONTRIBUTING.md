@@ -36,6 +36,6 @@ Use the compatibility issue template. Include model and firmware if known, macOS
 ditto -c -k --sequesterRsrc --keepParent "dist/Govee Mac.app" dist/Govee-Mac-universal.zip
 ```
 
-These are ad-hoc signed bundles. Apple Developer signing and notarization require a maintainer's credentials and are not part of the current automated build.
+Builds and tests run locally; repository GitHub Actions are disabled. Bundles default to ad-hoc signing. Set `GOVEE_MAC_SIGNING_IDENTITY` or place your existing development certificate's name in the ignored `.local-signing-identity` file for local signed builds. Notarization is not configured.
 
 By contributing, you agree that your contributions may be distributed under the project's MIT license. Please follow our [Code of Conduct](CODE_OF_CONDUCT.md).

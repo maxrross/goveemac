@@ -59,6 +59,7 @@ public struct LightDevice: Identifiable, Sendable {
     public let connection: ConnectionKind
     public var address: String
     public var state = LightState()
+    public var heads: [LightHeadState]
     public var isAvailable = false
     public var isConnecting = false
     public var hasKnownState = false
@@ -69,6 +70,7 @@ public struct LightDevice: Identifiable, Sendable {
     public init(id: String, name: String, model: String, connection: ConnectionKind, address: String = "") {
         self.id = id; self.name = name; self.model = model
         self.connection = connection; self.address = address
+        heads = (0..<DeviceCatalog.headCount(model: model)).map { LightHeadState(id: $0) }
     }
 
     public var supportsTemperature: Bool { connection != .bluetooth }
@@ -82,6 +84,7 @@ public struct LightDevice: Identifiable, Sendable {
 
 public enum LightCommand: Equatable, Sendable {
     case power(Bool), brightness(Int), color(RGB), temperature(Int), status
+    case head(LightHeadState)
 
     public var key: String {
         switch self {
@@ -89,6 +92,7 @@ public enum LightCommand: Equatable, Sendable {
         case .brightness: "brightness"
         case .color, .temperature: "color"
         case .status: "status"
+        case .head(let head): "head:\(head.id)"
         }
     }
 
@@ -100,6 +104,7 @@ public enum LightCommand: Equatable, Sendable {
         case .color(let rgb): result.color = rgb; result.temperature = 0
         case .temperature(let kelvin): result.temperature = max(2000, min(9000, kelvin))
         case .status: break
+        case .head: result.temperature = 0
         }
         return result
     }

@@ -40,8 +40,12 @@ struct DeviceDetailView: View {
                         Button("Retry") { Task { await store.scanLAN() } }
                     }.surface()
                 }
+                if !device.heads.isEmpty { Text("Whole lamp").font(.title3.weight(.semibold)) }
                 LightControlsView(store: store, device: device)
                     .disabled(!device.isAvailable)
+                if !device.heads.isEmpty {
+                    HeadControlsView(store: store, device: device).disabled(!device.isAvailable)
+                }
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Set the mood").font(.title3.weight(.semibold))
@@ -50,7 +54,7 @@ struct DeviceDetailView: View {
                     Spacer()
                     Button { presetName = ""; savingPreset = true } label: {
                         Label("Save current look", systemImage: "plus")
-                    }.disabled(!device.isAvailable)
+                    }.disabled(!device.isAvailable || (!device.heads.isEmpty && !device.heads.allSatisfy(\.hasRequestedState)))
                 }
                 PresetsView(store: store, device: device)
                 connectionDetails
@@ -62,7 +66,7 @@ struct DeviceDetailView: View {
             }
         }
         .sheet(isPresented: $savingPreset) {
-            nameSheet(title: "Save this look", prompt: "Keep this color and brightness for next time.", name: $presetName, actionTitle: "Save preset") {
+            nameSheet(title: "Save this look", prompt: "Keep these colors and brightness levels for next time.", name: $presetName, actionTitle: "Save preset") {
                 store.savePreset(name: presetName, device: device); savingPreset = false
             }
         }

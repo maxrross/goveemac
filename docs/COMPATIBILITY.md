@@ -5,7 +5,7 @@ Govee's transports and packet formats vary by model and firmware. We are buildin
 | Model | Connection | Evidence | Status |
 | --- | --- | --- | --- |
 | H6195 | Bluetooth LE | Govee-Sync's upstream author reports this as their primary tested model | Upstream reference; not independently verified by Govee Mac |
-| H60B2 Tree Floor Lamp | Bluetooth LE | Encrypted session and power/brightness queries verified; physical power-off and custom red on all three heads confirmed by the owner | Power and all-head RGB verified; brightness state readback verified |
+| H60B2 Tree Floor Lamp | Bluetooth LE | Owner confirmed whole-lamp power/RGB, bottom-only blue, middle-only green with independent dimming, and top-only off | Whole-lamp and individual-head controls verified; power/overall brightness state readback verified |
 | H60B2 Tree Floor Lamp | Local Wi-Fi | All-three-head `ptReal` RGB packet implemented from published H60B2 research | Protocol tests pass; local hardware verification pending |
 | H6098 | Bluetooth LE | Encrypted legacy handshake and valid power/brightness/mode replies verified | State queries work; owner reported physical controls did not respond |
 | LAN-enabled models | Local Wi-Fi | Codec tests and documented Govee UDP protocol | Physical model reports welcome |
@@ -40,7 +40,11 @@ If discovery fails, check guest-network/client isolation, VLAN routing, VPN rout
 
 Only one LAN controller can use the app's exclusive UDP 4002 listener at a time. Quit other Govee LAN controllers if the app reports that the port is busy. The app queries LAN state every 12 seconds and marks a light unavailable after 30 seconds without a response.
 
-H60B2 RGB uses a base64 `ptReal` frame with segment mask `0x0007`, selecting all three heads together. Its zero RGB status in segment mode does not overwrite the last requested color. Other models use standard `colorwc`. There are no individual-head controls in this version.
+H60B2 RGB uses a base64 `ptReal` frame with segment mask `0x0007` for the whole lamp, or `0x0001`, `0x0002`, and `0x0004` for individual heads. The Bluetooth path uses the same binary head frames in its encrypted session. Individual brightness scales a head's RGB channels; individual off sends black while preserving the chosen color for turning it back on. Whole-lamp brightness still affects every head. Its zero RGB status in segment mode does not overwrite the last requested color. Other models use standard `colorwc`.
+
+Individual head settings are last-requested values stored locally. They are not read back from the lamp, and changes from Govee Home cannot be observed per head. A saved mixed look includes all three head states and overall brightness; it is available only on a three-head lamp.
+
+The H60B2 head mapping was checked on hardware: mask `0x0001` selects **Bottom**, `0x0002` selects **Middle**, and `0x0004` selects **Top**. The app uses these physical position labels.
 
 White-temperature requests are clamped to 2000–9000 K; individual models may support a narrower range or no white-temperature command. This initial release does not discover per-model temperature capabilities automatically.
 
@@ -51,4 +55,4 @@ White-temperature requests are clamped to 2000–9000 K; individual models may s
 - [Govee LAN API 101](https://community.govee.com/posts/mastering-the-lan-api-series-lan-api-101/136755), published Govee community protocol documentation.
 - [H60B2 LAN segment protocol](https://github.com/alexluckett/govee2mqtt-segment-control/blob/main/docs/SEGMENT_CONTROL.md), packet format and state-readback limitations tested by that project's author.
 
-The app has no screen capture, audio capture, cloud scenes, individual segment controls, or cloud-only device support in this release.
+The app has no screen capture, audio capture, cloud scenes, or cloud-only device support in this release. Individual head controls are limited to H60B2; other segment-capable models need their own verified profiles.

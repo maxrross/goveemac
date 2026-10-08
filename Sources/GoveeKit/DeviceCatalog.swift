@@ -1,6 +1,13 @@
 import Foundation
 
 public enum DeviceCatalog {
+    public static func headCount(model: String) -> Int { model == "H60B2" ? 3 : 0 }
+
+    public static func headName(model: String, index: Int) -> String {
+        guard model == "H60B2", (0..<3).contains(index) else { return "Head \(index + 1)" }
+        return ["Bottom", "Middle", "Top"][index]
+    }
+
     public static func friendlyName(model: String) -> String? {
         switch model {
         case "H60B2": "Tree floor lamp"

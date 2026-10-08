@@ -22,10 +22,17 @@ public enum LANProtocol {
         case .color(let rgb): try encode("colorwc", data: ["color": ["r": Int(rgb.red), "g": Int(rgb.green), "b": Int(rgb.blue)], "colorTemInKelvin": 0])
         case .temperature(let value): try encode("colorwc", data: ["color": ["r": 0, "g": 0, "b": 0], "colorTemInKelvin": max(2000, min(9000, value))])
         case .status: try encode("devStatus", data: [:])
+        case .head: throw ProtocolEncodingError.unsupportedHead
         }
     }
 
     public static func encode(_ command: LightCommand, model: String) throws -> Data {
+        if case .head = command {
+            guard let packet = BLEProtocol.encode(command, model: model, encrypted: false) else {
+                throw ProtocolEncodingError.unsupportedHead
+            }
+            return try encode("ptReal", data: ["command": [packet.base64EncodedString()]])
+        }
         if model == "H60B2", case .color = command,
            let packet = BLEProtocol.encode(command, percentBrightness: true, extendedColor: true, segmentMask: 7) {
             // H60B2 LAN segment control: bits 0–2 select all three lamp heads.

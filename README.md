@@ -20,8 +20,9 @@ This is an early community release. Device support varies by model and firmware;
 
 - Discover LAN-enabled lights on your network or nearby compatible Bluetooth lights.
 - Turn lights on or off, set brightness, and choose an RGB color.
+- Control each H60B2 Tree lamp head separately, including color, brightness, and on/off.
 - Adjust white temperature over LAN on models that support it.
-- Apply six built-in looks, or save your own color, brightness, and temperature presets.
+- Apply six built-in looks, or save your own color, brightness, temperature, and mixed-head presets.
 - Rename lights, mark favorites, and control them from the macOS menu bar.
 - Add a light by IPv4 address when multicast discovery is blocked.
 - Preview everything with labeled demo lights, without changing physical hardware.
@@ -50,7 +51,7 @@ cd goveemac
 
 The script builds a real `dist/Govee Mac.app` bundle, then opens it. You can also open `Package.swift` in Xcode. Build and launch through the script to include the app's required privacy descriptions and icon.
 
-If you have an Apple development certificate, set `GOVEE_MAC_SIGNING_IDENTITY` to its name when running the script. Signing with the same certificate retains Bluetooth permission across rebuilds. Ad-hoc signatures change with each build and may trigger a fresh macOS Bluetooth prompt.
+If you have an Apple development certificate, set `GOVEE_MAC_SIGNING_IDENTITY` to its name when running the script, or put its name on the first line of the ignored `.local-signing-identity` file. Signing with the same certificate retains Bluetooth permission across rebuilds. Ad-hoc signatures change with each build and may trigger a fresh macOS Bluetooth prompt.
 
 ```sh
 swift test                             # Protocol and model tests

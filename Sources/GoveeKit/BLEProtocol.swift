@@ -18,7 +18,7 @@ public enum BLEProtocol {
         case .power(let value): packet(command: 0x01, payload: [value ? 1 : 0])
         case .brightness(let value): packet(command: 0x04, payload: [UInt8((Double(max(1, min(100, value))) / 100 * (percentBrightness ? 100 : 254)).rounded())])
         case .color(let rgb): packet(command: 0x05, payload: extendedColor ? [0x15, 0x01, rgb.red, rgb.green, rgb.blue, 0, 0, 0, 0, 0, UInt8(segmentMask & 255), UInt8(segmentMask >> 8)] : [0x02, rgb.red, rgb.green, rgb.blue])
-        case .temperature, .status: nil
+        case .temperature, .status, .head: nil
         }
     }
 
@@ -26,6 +26,11 @@ public enum BLEProtocol {
     public static var keepAlive: Data { query(0x01) }
 
     public static func encode(_ command: LightCommand, model: String, encrypted: Bool) -> Data? {
+        if case .head(let head) = command {
+            guard model == "H60B2", (0..<3).contains(head.id) else { return nil }
+            return encode(.color(head.wireColor), percentBrightness: true, extendedColor: true,
+                          segmentMask: UInt16(1) << head.id)
+        }
         let percent = encrypted || ["H60B2", "H6098", "H6099"].contains(model)
         return encode(command, percentBrightness: percent,
                       extendedColor: ["H60B2", "H6098", "H6099"].contains(model),

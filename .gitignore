@@ -3,6 +3,7 @@
 dist/
 work/
 .DS_Store
+.local-signing-identity
 *.xcuserstate
 xcuserdata/
 *.dSYM/

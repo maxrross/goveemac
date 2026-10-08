@@ -15,13 +15,15 @@ struct PresetsView: View {
                             .background(preset.color.swiftUIColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 11))
                         VStack(alignment: .leading, spacing: 5) {
                             Text(preset.name).font(.callout.weight(.medium)).foregroundStyle(.primary).lineLimit(1)
-                            Text("\(preset.brightness)% brightness").font(.caption2).foregroundStyle(.secondary)
+                            Text(preset.heads == nil ? "\(preset.brightness)% brightness" : "3 heads · \(preset.brightness)%")
+                                .font(.caption2).foregroundStyle(.secondary)
                         }
                         Spacer(minLength: 0)
                     }.padding(14).frame(maxWidth: .infinity, alignment: .leading)
                         .background(.background, in: RoundedRectangle(cornerRadius: 13))
                         .overlay(RoundedRectangle(cornerRadius: 13).strokeBorder(preset.color.swiftUIColor.opacity(0.18)))
-                }.buttonStyle(.plain).disabled(!device.isAvailable || store.busyIDs.contains(device.id))
+                }.buttonStyle(.plain).disabled(!device.isAvailable || store.busyIDs.contains(device.id)
+                    || (preset.heads.map { $0.count != device.heads.count } ?? false))
                     .help("Apply \(preset.name) to \(device.name)")
                     .contextMenu {
                         if !preset.isBuiltIn {

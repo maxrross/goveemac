@@ -8,12 +8,14 @@ public struct LightPreset: Identifiable, Codable, Equatable, Sendable {
     public var brightness: Int
     public var temperature: Int
     public var isBuiltIn: Bool
+    public var heads: [LightHeadState]?
 
     public init(id: String = UUID().uuidString, name: String, symbol: String = "bookmark.fill", color: RGB,
-                brightness: Int, temperature: Int = 0, isBuiltIn: Bool = false) {
+                brightness: Int, temperature: Int = 0, isBuiltIn: Bool = false, heads: [LightHeadState]? = nil) {
         self.id = id; self.name = name; self.symbol = symbol; self.color = color
         self.brightness = max(1, min(100, brightness))
         self.temperature = temperature; self.isBuiltIn = isBuiltIn
+        self.heads = heads
     }
 
     public static let builtIns: [LightPreset] = [
