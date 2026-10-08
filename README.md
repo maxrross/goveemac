@@ -37,7 +37,7 @@ Encrypted legacy Bluetooth sessions (`e701`/`e702`, AES-ECB + RC4 framing) are n
 
 Download the universal community preview from [Releases](https://github.com/maxrross/goveemac/releases). It supports Apple Silicon and Intel Macs running **macOS 14 Sonoma or later**. Model support is listed in the [compatibility guide](docs/COMPATIBILITY.md).
 
-Default builds are **ad-hoc signed development builds, not Apple-notarized releases**. macOS may require you to approve the app in System Settings → Privacy & Security after the first launch attempt.
+GitHub downloads are **Developer ID signed, Apple-notarized, and stapled**. Local development builds use the signing identity configured on your Mac. See the [local release workflow](docs/DISTRIBUTION.md) for signing and notarization.
 
 ### Build from source
 
