@@ -94,9 +94,12 @@ displays after connecting or removing a monitor.
 
 ## Release validation
 
-Pure green (`#00FF00`) was physically confirmed on all three H60B2 heads. The
-whole-lamp and individual-head green shortcuts now use that color, replacing
-the previous mint shortcut (`#49C885`), which included blue.
+The whole-lamp and individual-head controls use one shared palette of eight
+saturated RGB colors. All 32 shortcut applications were checked through the
+running app: each requested the expected hex color, and an individual-head
+edit retained the other heads' colors. Pure green (`#00FF00`) was physically
+confirmed on all three H60B2 heads. These software checks do not establish
+physical color accuracy for every shortcut.
 
 The H60B2 Aurora scene was physically confirmed animating. Both system audio
 and microphone capture produced nonzero frequency-band energy and changing

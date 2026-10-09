@@ -12,7 +12,6 @@ struct LightControlsView: View {
     @State private var white = false
     @State private var hex = ""
     @State private var hexEdited = false
-    private let swatches: [RGB] = [RGB(255,86,76), RGB(255,167,64), RGB(250,218,82), RGB(0,255,0), RGB(40,185,205), RGB(68,132,250), RGB(165,104,250), RGB(247,119,191)]
     var body: some View {
         EqualHeightColumns {
             ControlPanel(fillsHeight: true) {
@@ -56,7 +55,10 @@ struct LightControlsView: View {
                     ShadcnButton("Apply white", variant: .secondary, size: .small) { store.send(.temperature(Int(temperature)), to: device.id) }
                 } else {
                     ShadcnWrapLayout(spacing: 5) {
-                        ForEach(swatches, id: \.hex) { rgb in ColorSwatch(color: rgb, selected: device.state.color == rgb) { setColor(rgb) } }
+                        ForEach(ColorShortcut.all) { shortcut in
+                            ColorSwatch(color: shortcut.color, selected: device.state.color == shortcut.color,
+                                        label: "Set \(shortcut.title)") { setColor(shortcut.color) }
+                        }
                     }
                     ColorPicker("Custom color", selection: Binding(get: { device.state.color.swiftUIColor }, set: { setColor(RGB(color: $0), debounce: true) }), supportsOpacity: false)
                     HStack(spacing: 8) {

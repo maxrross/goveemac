@@ -26,7 +26,6 @@ private struct HeadControlCard: View {
     @State private var hex: String
     @State private var hexEdited = false
     @State private var editingBrightness = false
-    private let colors = [RGB(255,0,0), RGB(0,255,0), RGB(36,165,255), RGB(174,107,255)]
     init(store: LightStore, device: LightDevice, head: LightHeadState) {
         self.store = store; self.device = device; self.head = head
         _draft = State(initialValue: head); _hex = State(initialValue: head.color.hex)
@@ -41,8 +40,11 @@ private struct HeadControlCard: View {
                     .accessibilityLabel("\(label) power")
             }
             ColorPicker("Color", selection: Binding(get: { draft.color.swiftUIColor }, set: { setColor(RGB(color: $0), debounce: true) }), supportsOpacity: false).accessibilityLabel("\(label) color")
-            HStack(spacing: 6) {
-                ForEach(colors, id: \.hex) { color in ColorSwatch(color: color, selected: draft.color == color, label: "\(label) set color \(color.hex)") { setColor(color) } }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 28), spacing: 5), count: 4), spacing: 5) {
+                ForEach(ColorShortcut.all) { shortcut in
+                    ColorSwatch(color: shortcut.color, selected: draft.color == shortcut.color,
+                                label: "\(label) set \(shortcut.title)") { setColor(shortcut.color) }
+                }
             }
             HStack(spacing: 6) {
                 ShadcnTextField("#RRGGBB", text: Binding(get: { hex }, set: { hex = $0; hexEdited = true }), onSubmit: applyHex)

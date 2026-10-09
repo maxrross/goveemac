@@ -17,6 +17,6 @@ struct ColorSwatch: View {
         }.buttonStyle(.plain)
             .accessibilityLabel(label ?? "Set color \(color.hex)")
             .accessibilityAddTraits(selected ? .isSelected : [])
-            .help(color.hex)
+            .help(label ?? color.hex)
     }
 }

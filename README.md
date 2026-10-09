@@ -94,7 +94,7 @@ Page tabs share equal widths, type size, and height. Their buttons compose ShadK
 
 Rename is centered beside the light's title, with the page tabs directly below the header. The selected scene is marked on its card. Sliders hide the rectangular focus highlight while retaining keyboard and accessibility adjustment.
 
-The green shortcuts for the whole lamp and each head send pure green (`#00FF00`), with no red or blue component.
+The whole lamp and each head share eight named color shortcuts: red `#FF0000`, orange `#FF8000`, yellow `#FFFF00`, green `#00FF00`, cyan `#00FFFF`, blue `#0000FF`, purple `#8000FF`, and pink `#FF0080`. Their swatches display the RGB values they send, and tooltips show the name and hex value. Each head offers the full palette in two equal rows of four. Custom colors retain the exact RGB value you choose.
 
 Unchanged Bluetooth keepalives do not refresh device data. Each streamed three-head frame updates the editor once, and transient brightness effects keep the editor at the user's chosen brightness ceiling. The scene browser depends on the model and availability instead of live RGB values. These changes reduce unnecessary SwiftUI updates; scroll frame timing has not been measured.
 
