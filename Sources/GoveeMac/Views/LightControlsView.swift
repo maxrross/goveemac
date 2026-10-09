@@ -28,6 +28,7 @@ struct LightControlsView: View {
                     Text("\(Int(brightness))%").font(.callout.monospacedDigit())
                 }
                 ShadcnSlider(value: Binding(get: { brightness }, set: { brightness = $0; store.send(.brightness(Int($0.rounded())), to: device.id, debounce: true) }), in: 1...100, step: 1)
+                    .focusEffectDisabled()
                     .accessibilityLabel("Brightness")
                     .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in editingBrightness = true }.onEnded { _ in editingBrightness = false })
 
@@ -48,6 +49,7 @@ struct LightControlsView: View {
                 if white {
                     HStack { Text("Temperature").foregroundStyle(.secondary); Spacer(); Text("\(Int(temperature)) K").monospacedDigit() }.font(.callout)
                     ShadcnSlider(value: Binding(get: { temperature }, set: { temperature = $0; store.send(.temperature(Int($0.rounded())), to: device.id, debounce: true) }), in: 2000...9000, step: 100)
+                        .focusEffectDisabled()
                         .accessibilityLabel("White temperature")
                         .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in editingTemperature = true }.onEnded { _ in editingTemperature = false })
 

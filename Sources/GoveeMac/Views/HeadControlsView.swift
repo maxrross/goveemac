@@ -53,6 +53,7 @@ private struct HeadControlCard: View {
             }
             HStack { Text("Brightness").foregroundStyle(.secondary); Spacer(); Text("\(draft.brightness)%").monospacedDigit() }.font(.caption)
             ShadcnSlider(value: Binding(get: { Double(draft.brightness) }, set: { draft.brightness = Int($0.rounded()); send(debounce: true) }), in: 1...100, step: 1)
+                .focusEffectDisabled()
                 .accessibilityLabel("\(label) brightness")
                 .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in editingBrightness = true }.onEnded { _ in editingBrightness = false })
 

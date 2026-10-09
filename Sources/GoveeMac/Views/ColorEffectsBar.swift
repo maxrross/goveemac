@@ -35,6 +35,7 @@ struct ColorEffectsBar: View {
                 Spacer(minLength: 0)
                 Text("Speed").font(.caption).foregroundStyle(.secondary)
                 ShadcnSlider(value: Binding(get: { controller.speed }, set: { controller.speed = $0 }), in: 0.1...5, step: 0.1)
+                    .focusEffectDisabled()
                     .frame(maxWidth: 140).accessibilityLabel("Color effect speed")
                 Text("\(controller.speed, specifier: "%.1f")×").font(.caption.monospacedDigit())
             }

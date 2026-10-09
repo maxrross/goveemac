@@ -66,6 +66,7 @@ struct SyncControlsView: View {
                             Text("\(live.sensitivity, specifier: "%.1f")×").font(.callout.monospacedDigit())
                         }
                         ShadcnSlider(value: Binding(get: { live.sensitivity }, set: { live.sensitivity = $0 }), in: 0.2...5, step: 0.1)
+                            .focusEffectDisabled()
                             .accessibilityLabel("Music sensitivity")
                     }
                 }

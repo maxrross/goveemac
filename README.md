@@ -92,6 +92,8 @@ ShadKit is pinned in `Package.swift` and `Package.resolved` to revision `6dbefde
 
 Page tabs share equal widths, type size, and height. Their buttons compose ShadKit's bare-button style, typography, and palette; selecting a tab changes the page without animating the whole layout. Scene search and category selection survive tab changes. Scene artwork is decoded to small thumbnails off the main thread, with a bounded cache of 128 images reused when returning to Scenes. Screen matching reuses its display list until you refresh it. The release build option above avoids evaluating UI performance in an unoptimized development build.
 
+Rename is centered beside the light's title. The active scene appears in the labeled lighting status row. Sliders hide the rectangular focus highlight while retaining keyboard and accessibility adjustment.
+
 Unchanged Bluetooth keepalives do not refresh device data. Each streamed three-head frame updates the editor once, and transient brightness effects keep the editor at the user's chosen brightness ceiling. The scene browser depends on the model and availability instead of live RGB values. These changes reduce unnecessary SwiftUI updates; scroll frame timing has not been measured.
 
 The approved standing-lamp icon is included as a source PNG and packaged macOS ICNS. See [the icon source and regeneration instructions](docs/icon-source.md).

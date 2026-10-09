@@ -78,13 +78,11 @@ struct DeviceDetailView: View {
                     Circle().fill(device.isAvailable ? Color.green : Color.secondary).frame(width: 6, height: 6)
                     Text("\(device.connection.title) · \(device.status)").font(.caption).foregroundStyle(.secondary)
                 }
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
                     Text(device.name).font(.system(size: 28, weight: .semibold)).lineLimit(2)
                     ShadcnButton("Rename", systemImage: "pencil", variant: .secondary) { newName = device.name; renaming = true }
                         .fixedSize().accessibilityLabel("Rename light").help("Rename this light")
                 }
-                Text(store.activeScenes[device.id] ?? device.model)
-                    .font(.callout).foregroundStyle(.secondary)
             }
             Spacer()
             if device.heads.count == 3 {
