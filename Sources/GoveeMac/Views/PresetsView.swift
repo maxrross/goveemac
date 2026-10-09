@@ -21,7 +21,7 @@ struct PresetsView: View {
                             store.apply(preset, to: device.id)
                         }
                             .accessibilityLabel("Apply \(preset.name)")
-                            .disabled(!device.isAvailable || store.busyIDs.contains(device.id)
+                            .disabled(!device.isAvailable
                                 || (preset.heads.map { $0.count != device.heads.count } ?? false))
                             .help("Apply \(preset.name) to \(device.name)")
                     }

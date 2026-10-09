@@ -34,9 +34,11 @@ struct ControlPanel<Content: View>: View {
 struct EqualHeightColumns: Layout {
     var spacing: CGFloat = 16
     var minimumColumnWidth: CGFloat = 250
+    var allowedColumnCounts: [Int]? = nil
 
     private func columns(width: CGFloat, count: Int) -> Int {
-        max(1, min(count, Int((width + spacing) / (minimumColumnWidth + spacing))))
+        let capacity = max(1, min(count, Int((width + spacing) / (minimumColumnWidth + spacing))))
+        return allowedColumnCounts?.filter { $0 > 0 && $0 <= capacity }.max() ?? capacity
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {

@@ -7,9 +7,10 @@ public struct NativeScene: Identifiable, Codable, Equatable, Sendable {
     public var category: String
     public var code: Int
     public var parameter: Data
-    public init(model: String, name: String, category: String, code: Int, parameter: Data) {
+    public var iconURLs: [URL]?
+    public init(model: String, name: String, category: String, code: Int, parameter: Data, iconURLs: [URL]? = nil) {
         self.id = "\(model):\(code)"; self.model = model; self.name = name
-        self.category = category; self.code = code; self.parameter = parameter
+        self.category = category; self.code = code; self.parameter = parameter; self.iconURLs = iconURLs
     }
     /// Fragmented scene upload followed by the little-endian scene selection.
     /// Protocol described by wez/govee2mqtt's SetSceneCode (MIT).
@@ -63,7 +64,13 @@ public struct NativeScene: Identifiable, Codable, Equatable, Sendable {
                         }
                     }
                     guard let bytes = Data(base64Encoded: param) else { continue }
-                    let item = NativeScene(model: model, name: name, category: category["categoryName"] as? String ?? "Scenes", code: code, parameter: bytes)
+                    let icons = (scene["iconUrls"] as? [String] ?? []).prefix(3).compactMap { value -> URL? in
+                        guard let url = URL(string: value), url.scheme?.lowercased() == "https", url.host != nil,
+                              url.user == nil, url.password == nil else { return nil }
+                        return url
+                    }
+                    let item = NativeScene(model: model, name: name, category: category["categoryName"] as? String ?? "Scenes", code: code, parameter: bytes,
+                                           iconURLs: icons.isEmpty ? nil : icons)
                     if item.packets != nil, !scenes.contains(where: { $0.id == item.id }) { scenes.append(item) }
                 }
             }

@@ -33,13 +33,7 @@ struct DeviceDetailView: View {
                         ShadcnButton("Retry", variant: .outline, size: .small) { Task { await store.scanLAN() } }
                     }
                 }
-                if store.live.deviceID == device.id {
-                    HStack {
-                        Label(store.live.mode, systemImage: "waveform.path").font(.callout.weight(.medium))
-                        Spacer()
-                        ShadcnButton("Stop & restore", variant: .secondary, size: .small) { Task { await store.live.stop(restore: true) } }
-                    }.padding(12).background(.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-                }
+                LiveStatusRow(live: store.live, deviceID: device.id, sceneName: store.activeScenes[device.id])
                 ShadcnTabs(selection: $tab, variant: .line,
                            items: ["Color", "Scenes", "Music", "Screen", "Saved looks"].map { ($0, $0) })
 
@@ -83,15 +77,16 @@ struct DeviceDetailView: View {
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(device.name).font(.system(size: 28, weight: .semibold)).lineLimit(2)
-                    Button { newName = device.name; renaming = true } label: { Image(systemName: "pencil") }
-                        .buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("Rename light")
+                    ShadcnButton("Rename", systemImage: "pencil", variant: .secondary) { newName = device.name; renaming = true }
+                        .fixedSize().accessibilityLabel("Rename light").help("Rename this light")
                 }
                 Text(store.activeScenes[device.id] ?? device.model)
                     .font(.callout).foregroundStyle(.secondary)
             }
             Spacer()
             if device.heads.count == 3 {
-                TreeLampPreview(heads: device.heads).accessibilityHidden(true).padding(.trailing, 8)
+                TreeLampPreview(heads: device.heads, sceneName: store.activeScenes[device.id])
+                    .accessibilityHidden(true).padding(.trailing, 8)
             }
         }.padding(.vertical, 8)
     }
@@ -143,5 +138,34 @@ struct DeviceDetailView: View {
                 ShadcnButton(actionTitle, action: action).keyboardShortcut(.defaultAction).disabled(!valid)
             }
         }.padding(Space.x6).frame(width: 420)
+    }
+}
+
+/// A permanent row keeps the page in place when lighting starts or stops.
+private struct LiveStatusRow: View {
+    let live: LiveController
+    let deviceID: String
+    let sceneName: String?
+    private var active: Bool { live.deviceID == deviceID }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Label(active ? live.mode : sceneName.map { "Scene · \($0)" } ?? "Manual control",
+                  systemImage: active ? "waveform.path" : sceneName == nil ? "slider.horizontal.3" : "sparkles")
+                .font(.callout.weight(.medium))
+            Spacer(minLength: 0)
+            ProgressView().controlSize(.small).opacity(live.isStarting ? 1 : 0)
+                .accessibilityHidden(!live.isStarting)
+            if active {
+                ShadcnButton("Stop & restore", variant: .secondary, size: .small) {
+                    Task { await live.stop(restore: true) }
+                }
+            }
+        }
+        .padding(12)
+        .frame(height: 56)
+        .background(.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("live-status-row")
     }
 }

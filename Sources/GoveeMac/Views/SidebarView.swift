@@ -34,10 +34,6 @@ struct SidebarView: View {
             }.listStyle(.sidebar)
             ShadcnButton("Add a light", systemImage: "plus", variant: .outline, fillsWidth: true, action: discover)
                 .padding(Space.x4)
-            ShadcnSeparator().padding(.horizontal, Space.x4)
-            Link("Built by the community ↗", destination: Brand.repository)
-                .buttonStyle(.shadcn(.link, size: .small))
-                .frame(maxWidth: .infinity, alignment: .leading).padding(Space.x4)
         }
     }
 

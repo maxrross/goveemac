@@ -69,11 +69,19 @@ struct SyncControlsView: View {
                             .accessibilityLabel("Music sensitivity")
                     }
                 }
-                if screen, isActive, let image = live.screenImage {
-                    Image(nsImage: image).resizable().interpolation(.none).aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: 360, maxHeight: 180)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .accessibilityLabel("Live preview of the captured display")
+                if screen {
+                    Group {
+                        if let image = live.screenImage, isActive {
+                            Image(nsImage: image).resizable().interpolation(.none).aspectRatio(contentMode: .fit)
+                                .accessibilityLabel("Live preview of the captured display")
+                        } else {
+                            RoundedRectangle(cornerRadius: 8).fill(palette.muted)
+                                .overlay { Label("Display preview", systemImage: "display").font(.callout).foregroundStyle(palette.mutedForeground) }
+                        }
+                    }
+                    .frame(maxWidth: 360)
+                    .frame(height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(0..<3, id: \.self) { i in
@@ -109,7 +117,7 @@ struct SyncControlsView: View {
                 ShadcnWrapLayout(spacing: 8) {
                     ShadcnButton(live.isStarting ? "Starting…" : "\(isActive ? "Restart" : "Start") \(screen ? "screen matching" : "music sync")", systemImage: "play.fill") { start() }
                         .disabled(!device.isAvailable || live.isStarting)
-                    if live.isRunning {
+                    if live.deviceID == device.id {
                         ShadcnButton("Stop & restore", systemImage: "stop.fill", variant: .secondary) { Task { await live.stop(restore: true) } }
                     }
                 }
@@ -117,7 +125,6 @@ struct SyncControlsView: View {
                     ? "Uses macOS Screen & System Audio Recording access. Nothing is recorded or uploaded."
                     : "Uses macOS Microphone access. Nothing is recorded or uploaded.")
             }
-            .disabled(live.isStarting)
             ShadcnCardDescription("Source and display changes apply immediately while running. Manual edits stop sync. Stop & restore returns to your previous look.")
         }
         .task { if screen { await live.refreshDisplays() } }
@@ -129,6 +136,10 @@ struct SyncControlsView: View {
 
     private func start() {
         guard !live.isStarting else { return }
-        Task { do { try await live.start(mode: mode, device: device) } catch { store.errorMessage = error.localizedDescription } }
+        Task {
+            do { try await live.start(mode: mode, device: device) }
+            catch is CancellationError { }
+            catch { store.errorMessage = error.localizedDescription }
+        }
     }
 }

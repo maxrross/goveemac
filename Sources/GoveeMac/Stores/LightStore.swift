@@ -355,6 +355,7 @@ final class LightStore {
                 case .scene(let scene):
                     activeScenes[id] = scene.name
                     for headIndex in devices[index].heads.indices { devices[index].heads[headIndex].hasRequestedState = false }
+                    if persist { persistHeads(for: devices[index]) }
                 case .temperature:
                     for headIndex in devices[index].heads.indices {
                         devices[index].heads[headIndex].hasRequestedState = false

@@ -31,9 +31,9 @@ struct LightControlsView: View {
                     .accessibilityLabel("Brightness")
                     .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in editingBrightness = true }.onEnded { _ in editingBrightness = false })
 
-                ShadcnWrapLayout(spacing: 8) {
+                EqualHeightColumns(spacing: 8, minimumColumnWidth: 72, allowedColumnCounts: [2, 4]) {
                     ForEach([25,50,75,100], id: \.self) { value in
-                        ShadcnButton("\(value)%", variant: .secondary, size: .xs) { brightness = Double(value); store.send(.brightness(value), to: device.id) }
+                        ShadcnButton("\(value)%", variant: .secondary, fillsWidth: true) { brightness = Double(value); store.send(.brightness(value), to: device.id) }
                     }
                 }
             }
