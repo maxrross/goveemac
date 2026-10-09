@@ -11,11 +11,12 @@ struct SceneBrowserView: View {
     let available: Bool
     @Environment(\.shadcnPalette) private var palette
     @Environment(\.colorScheme) private var colorScheme
-    @State private var query = ""
-    @State private var category = "All"
+    @Binding private var query: String
+    @Binding private var category: String
     @State private var importing = false
-    init(store: LightStore, device: LightDevice) {
+    init(store: LightStore, device: LightDevice, query: Binding<String>, category: Binding<String>) {
         self.store = store; deviceID = device.id; model = device.model; available = device.isAvailable
+        _query = query; _category = category
     }
     private var library: [NativeScene] { store.scenes[model] ?? [] }
     private var categories: [String] { ["All"] + Array(Set(library.map(\.category))).sorted() }
@@ -51,11 +52,8 @@ struct SceneBrowserView: View {
                             RoundedRectangle(cornerRadius: 8).fill(palette.muted)
                                 .frame(height: 96)
                                 .overlay {
-                                    AsyncImage(url: sceneIcon(scene)) { image in
-                                        image.resizable().scaledToFit()
-                                    } placeholder: {
-                                        Image(systemName: "sparkles").font(.title2).foregroundStyle(palette.mutedForeground)
-                                    }.frame(width: 76, height: 76).accessibilityHidden(true)
+                                    SceneIconView(url: sceneIcon(scene))
+                                        .frame(width: 76, height: 76).accessibilityHidden(true)
                                 }
                                 .overlay(alignment: .bottomTrailing) {
                                     Image(systemName: store.activeScenes[deviceID] == scene.name ? "checkmark.circle.fill" : "play.fill")

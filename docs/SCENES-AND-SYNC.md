@@ -85,6 +85,11 @@ are in the main window's Settings page, rather than a footer under each tab.
 Disconnect is available by right-clicking a connected Bluetooth light in the
 sidebar. Scroll indicators are hidden; trackpad, wheel, and keyboard scrolling
 remain available. Scene icons are larger and use the library's actual artwork.
+The five page tabs have equal widths and switch without animating the page
+layout. Scene search and category selection survive switching tabs. Decoded
+scene thumbnails are reused from a bounded 128-image cache, and decoding runs
+off the main thread. The Screen page reuses its display list; use Refresh
+displays after connecting or removing a monitor.
 
 ## Release validation
 

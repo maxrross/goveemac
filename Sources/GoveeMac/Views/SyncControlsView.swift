@@ -127,7 +127,7 @@ struct SyncControlsView: View {
             }
             ShadcnCardDescription("Source and display changes apply immediately while running. Manual edits stop sync. Stop & restore returns to your previous look.")
         }
-        .task { if screen { await live.refreshDisplays() } }
+        .task { if screen && live.displays.isEmpty { await live.refreshDisplays() } }
         .onChange(of: live.source) { _, _ in if isActive && !screen { start() } }
         .onChange(of: live.displayID) { _, _ in if isActive && screen { start() } }
         .onChange(of: live.mapping) { _, _ in if isActive && screen { start() } }

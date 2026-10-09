@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
-MODE="${1:-run}"
+MODE="run"
+BUILD_RELEASE=false
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="GoveeMac"
 APP_BUNDLE="$ROOT_DIR/dist/Govee Mac.app"
 BUNDLE_ID="community.goveemac.app"
-case "$MODE" in
-  run|--debug|debug|--logs|logs|--telemetry|telemetry|--verify|verify) ;;
-  *) echo "Usage: $0 [run|--debug|--logs|--telemetry|--verify]" >&2; exit 2 ;;
-esac
+for option in "$@"; do
+  case "$option" in
+    run|--debug|debug|--logs|logs|--telemetry|telemetry|--verify|verify) MODE="$option" ;;
+    --release) BUILD_RELEASE=true ;;
+    *) echo "Usage: $0 [run|--debug|--logs|--telemetry|--verify] [--release]" >&2; exit 2 ;;
+  esac
+done
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
-"$ROOT_DIR/script/build_app.sh"
+if "$BUILD_RELEASE"; then
+  "$ROOT_DIR/script/build_app.sh" --release
+else
+  "$ROOT_DIR/script/build_app.sh"
+fi
 case "$MODE" in
   run) /usr/bin/open -n "$APP_BUNDLE" ;;
   --debug|debug) lldb -- "$APP_BUNDLE/Contents/MacOS/$APP_NAME" ;;

@@ -6,6 +6,8 @@ struct DeviceDetailView: View {
     let store: LightStore
     let device: LightDevice
     @State private var tab = "Color"
+    @State private var sceneQuery = ""
+    @State private var sceneCategory = "All"
     @State private var renaming = false
     @State private var newName = ""
     @State private var savingPreset = false
@@ -34,11 +36,10 @@ struct DeviceDetailView: View {
                     }
                 }
                 LiveStatusRow(live: store.live, deviceID: device.id, sceneName: store.activeScenes[device.id])
-                ShadcnTabs(selection: $tab, variant: .line,
-                           items: ["Color", "Scenes", "Music", "Screen", "Saved looks"].map { ($0, $0) })
+                LightTabsView(selection: $tab)
 
                 switch tab {
-                case "Scenes": SceneBrowserView(store: store, device: device)
+                case "Scenes": SceneBrowserView(store: store, device: device, query: $sceneQuery, category: $sceneCategory)
                 case "Music": SyncControlsView(store: store, device: device, screen: false)
                 case "Screen": SyncControlsView(store: store, device: device, screen: true)
                 case "Saved looks":

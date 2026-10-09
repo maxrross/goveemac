@@ -27,6 +27,9 @@ struct ScrollIndicatorHider: NSViewRepresentable {
             var parent = superview
             while let view = parent {
                 if let scroll = view as? NSScrollView {
+                    // Legacy scrollers reserve width even during page-layout
+                    // changes, causing short and tall tabs to shift sideways.
+                    if scroll.scrollerStyle != .overlay { scroll.scrollerStyle = .overlay }
                     if scroll.hasVerticalScroller { scroll.hasVerticalScroller = false }
                     if scroll.hasHorizontalScroller { scroll.hasHorizontalScroller = false }
                     return
