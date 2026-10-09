@@ -73,13 +73,14 @@ not implemented yet, but do not inherently require cloud access. LAN temperature
 available; native white-channel control over Bluetooth is not yet implemented.
 Only supported model/firmware protocols can be controlled locally.
 
-The lighting status row stays in place when starting, switching, or stopping
-brightness effects and sync. Scene and saved-look cards remain enabled while commands
+Page tabs sit directly below the light's header. Scene and saved-look cards remain enabled while commands
 are sent in order, so one selection does not fade the entire grid. While a
 native scene plays, the lamp preview shows neutral heads marked "Scene active":
 the lamp does not report the animated RGB values, and the preview must not
 present stale manual colors as current scene colors.
-Stop & restore appears only for app-driven effects and sync. Native scenes run
+Stop & restore is available in Music and Screen while sync is running. Choose
+None in the Color page's Effect menu to stop a brightness effect and restore
+the selected brightness. Native scenes run
 on the light without the Mac sending continuous frames. Connection diagnostics
 are in the main window's Settings page, rather than a footer under each tab.
 Disconnect is available by right-clicking a connected Bluetooth light in the

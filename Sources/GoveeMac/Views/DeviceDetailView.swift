@@ -35,7 +35,6 @@ struct DeviceDetailView: View {
                         ShadcnButton("Retry", variant: .outline, size: .small) { Task { await store.scanLAN() } }
                     }
                 }
-                LiveStatusRow(live: store.live, deviceID: device.id, sceneName: store.activeScenes[device.id])
                 LightTabsView(selection: $tab)
 
                 switch tab {
@@ -111,38 +110,5 @@ struct DeviceDetailView: View {
                 ShadcnButton(actionTitle, action: action).keyboardShortcut(.defaultAction).disabled(!valid)
             }
         }.padding(Space.x6).frame(width: 420)
-    }
-}
-
-/// A permanent row keeps the page in place when lighting starts or stops.
-private struct LiveStatusRow: View {
-    let live: LiveController
-    let deviceID: String
-    let sceneName: String?
-    private var active: Bool { live.deviceID == deviceID || live.colorEffects.deviceID == deviceID }
-    private var title: String {
-        let base = live.deviceID == deviceID ? live.mode : sceneName.map { "Scene · \($0)" } ?? "Manual control"
-        return live.colorEffects.deviceID == deviceID ? "\(base) · \(live.colorEffects.effect?.title ?? "Effect")" : base
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Label(title,
-                  systemImage: active ? "waveform.path" : sceneName == nil ? "slider.horizontal.3" : "sparkles")
-                .font(.callout.weight(.medium))
-            Spacer(minLength: 0)
-            ProgressView().controlSize(.small).opacity(live.isStarting || live.colorEffects.isStarting ? 1 : 0)
-                .accessibilityHidden(!live.isStarting && !live.colorEffects.isStarting)
-            if active {
-                ShadcnButton("Stop & restore", variant: .secondary, size: .small) {
-                    Task { await live.stop(restore: true) }
-                }
-            }
-        }
-        .padding(12)
-        .frame(height: 56)
-        .background(.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("live-status-row")
     }
 }
