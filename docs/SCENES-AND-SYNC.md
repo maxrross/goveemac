@@ -25,10 +25,21 @@ export interface in the inspected Tree lamp UI, and its DIY tab showed no
 saved DIY items. Import is not a claim that arbitrary account-specific cloud
 DIY templates can be copied from Govee Home or Lite.
 
-Mac effects include rainbow, color cycle, breathe, candle, ocean, aurora, and
-sunset. Speed is adjustable. They drive the three Tree heads independently.
-These replace the current lighting; they are not overlays on a native scene.
-Breathe pulses the selected whole-lamp color. The other effects use their own palettes.
+The Color tab's compact Effect menu offers Breathe, Pulse, and Flicker. These
+send only master-brightness commands: RGB colors, relative head brightness,
+white temperature, and a native scene program remain in place. Speed is
+adjustable. The brightness slider sets the maximum; the effect varies below
+that level without turning the lamp off. Choosing None restores that maximum
+and leaves the current colors or native scene running. Color, head, and scene
+edits keep this brightness effect active; turning the lamp off stops it.
+The app must remain running. An overlay uses the model's brightness command,
+so whether a particular firmware preserves its native animation needs a
+physical check.
+
+The CLI also retains the earlier palette effects (rainbow, color cycle,
+breathe, candle, ocean, aurora, and sunset). `govee effect` replaces RGB colors;
+`govee overlay` adds brightness motion over the current colors. Those palette
+effects no longer occupy a separate panel in Scenes.
 Choose Saved looks to save your current head colors and brightness levels.
 
 Music supports system audio (default) and microphone input. System audio uses
@@ -52,7 +63,8 @@ system-audio capture, and Microphone permission for microphone input. Access
 is requested when starting the feature, never at launch. If denied, enable
 Govee Mac in System Settings → Privacy & Security, restart it, and retry.
 Source, display, region, and style changes restart the active capture automatically.
-Manual edits stop sync. Stop & restore restores the prior known look or scene.
+Manual edits stop audio/screen color sync while retaining any brightness
+effect. Stop & restore stops both and restores the prior known look or scene.
 
 Account-specific DIY/Share Space import, Govee's AI generator, remote cloud control,
 and Alexa/Google account linking are not implemented. Wi-Fi setup, camera calibration,
@@ -62,13 +74,17 @@ available; native white-channel control over Bluetooth is not yet implemented.
 Only supported model/firmware protocols can be controlled locally.
 
 The lighting status row stays in place when starting, switching, or stopping
-Mac effects and sync. Scene and saved-look cards remain enabled while commands
+brightness effects and sync. Scene and saved-look cards remain enabled while commands
 are sent in order, so one selection does not fade the entire grid. While a
 native scene plays, the lamp preview shows neutral heads marked "Scene active":
 the lamp does not report the animated RGB values, and the preview must not
 present stale manual colors as current scene colors.
 Stop & restore appears only for app-driven effects and sync. Native scenes run
-on the light without the Mac sending continuous frames.
+on the light without the Mac sending continuous frames. Connection diagnostics
+are in the main window's Settings page, rather than a footer under each tab.
+Disconnect is available by right-clicking a connected Bluetooth light in the
+sidebar. Scroll indicators are hidden; trackpad, wheel, and keyboard scrolling
+remain available. Scene icons are larger and use the library's actual artwork.
 
 ## Release validation
 
@@ -79,7 +95,7 @@ remained connected. CLI tests checked per-head edits, animated effects,
 stop/restore, malformed and oversized requests, concurrent clients, selected
 light filtering, JSON imports, and invalid arguments. The pure protocol,
 cipher, scene-fragment, audio-band, music-response, and screen-region/style suite
-has 40 tests. A quiet 16-beat synthetic system-audio test produced 49 distinct
+has 44 tests. A quiet 16-beat synthetic system-audio test produced 49 distinct
 frames, detected all 16 beats, and sent a median 7.7 frames per second while
 the H60B2 remained connected. These are software/transport measurements, not
 a claim of measured physical beat latency. UI checks at the minimum window
@@ -90,3 +106,15 @@ head colors and brightness for Stop & restore.
 A follow-up effect-switch check sampled 15 live states across four replacements
 without exposing a transient Stopped state or losing the Bluetooth connection.
 Native scene restore and the saved unknown-color flags were also checked.
+
+Brightness-overlay checks sampled 41 manual-color states and 42 native-scene
+states on the connected H60B2. Head RGB values and relative brightness stayed
+unchanged, editing the brightness ceiling kept the overlay running, and
+choosing None restored the updated ceiling. With Star selected, the output
+covered 18–70% with 27 distinct brightness levels, the native-scene name stayed
+selected, and Bluetooth remained connected. These confirm app state and
+command delivery, rather than physical animation behavior. Four pure tests
+cover bounds, timing, invalid numeric inputs, and brightness-only packets.
+Unchanged Bluetooth keepalives no longer mutate the device, streamed head
+changes are applied once per frame, and the scene browser no longer depends
+on live RGB state. No quantitative scroll frame timing is claimed.

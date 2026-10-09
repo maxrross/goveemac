@@ -59,7 +59,7 @@ extension LightStore {
         return sceneStatus[model]!
     }
     func applyScene(_ scene: NativeScene, to id: String) async -> Bool {
-        await live.stop(restore: false)
+        await live.stopPrimary(restore: false)
         return await perform([.power(true), .scene(scene)], to: id)
     }
 }

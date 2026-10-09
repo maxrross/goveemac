@@ -51,6 +51,9 @@ public struct ControlReply: Codable, Sendable {
     public var captureStatus: String?
     public var outputFPS: Double?
     public var beats: Int?
+    public var overlay: String?
+    public var outputBrightness: Int?
+    public var nativeScene: String?
     public init(ok: Bool = true, message: String? = nil) { self.ok = ok; self.message = message }
 }
 public struct CaptureDisplay: Codable, Identifiable, Sendable {

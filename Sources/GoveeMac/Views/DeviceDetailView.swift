@@ -12,7 +12,7 @@ struct DeviceDetailView: View {
     @State private var presetName = ""
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.x6) {
                 hero
                 if device.connection == .bluetooth && !device.isAvailable {
@@ -51,11 +51,13 @@ struct DeviceDetailView: View {
                     PresetsView(store: store, device: device)
                 default:
                     LightControlsView(store: store, device: device).disabled(!device.isAvailable)
+                    ColorEffectsBar(store: store, deviceID: device.id, available: device.isAvailable)
                     if !device.heads.isEmpty { HeadControlsView(store: store, device: device).disabled(!device.isAvailable) }
                 }
-                connectionDetails
             }.padding(Space.x6).frame(maxWidth: 1024).frame(maxWidth: .infinity)
+                .background(ScrollIndicatorHider())
         }
+        .scrollIndicators(.hidden)
         .sheet(isPresented: $renaming) {
             nameSheet(title: "Name your light", prompt: "Choose a name for your light.", name: $newName, actionTitle: "Save") {
                 store.rename(device.id, to: newName); renaming = false
@@ -91,34 +93,6 @@ struct DeviceDetailView: View {
         }.padding(.vertical, 8)
     }
 
-    private var connectionDetails: some View {
-        FlatCard {
-            ShadcnCardHeader(content: {
-                ShadcnCardTitle("Connection")
-                ShadcnCardDescription(device.usesEncryptedBLE ? "Bluetooth · encrypted session" : device.connection.title)
-            }, action: {
-                ShadcnButton(icon: store.favorites.contains(device.id) ? "star.fill" : "star", size: .iconSM) { store.toggleFavorite(device.id) }
-                    .accessibilityLabel(store.favorites.contains(device.id) ? "Remove from Favorites" : "Add to Favorites")
-            })
-            ShadcnCardContent {
-                if !device.address.isEmpty {
-                    LabeledContent(device.connection == .lan ? "IP address" : "Identifier") {
-                        Text(device.address).font(.caption.monospaced()).textSelection(.enabled)
-                    }
-                }
-                ShadcnCardDescription("Power and brightness are read from the light. Color shows the last requested value when the light reports only its mode. Check the physical light to confirm a color change.")
-                if let sent = device.lastSent {
-                    ShadcnCardDescription("Last command sent \(sent.formatted(date: .omitted, time: .standard))")
-                }
-            }
-            if device.connection == .bluetooth && device.isAvailable {
-                ShadcnCardFooter {
-                    ShadcnButton("Disconnect", variant: .outline, size: .small) { store.disconnect(device) }
-                }
-            }
-        }
-    }
-
     private func nameSheet(title: String, prompt: String, name: Binding<String>, actionTitle: String, action: @escaping () -> Void) -> some View {
         let valid = !name.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return FlatCard {
@@ -146,16 +120,20 @@ private struct LiveStatusRow: View {
     let live: LiveController
     let deviceID: String
     let sceneName: String?
-    private var active: Bool { live.deviceID == deviceID }
+    private var active: Bool { live.deviceID == deviceID || live.colorEffects.deviceID == deviceID }
+    private var title: String {
+        let base = live.deviceID == deviceID ? live.mode : sceneName.map { "Scene · \($0)" } ?? "Manual control"
+        return live.colorEffects.deviceID == deviceID ? "\(base) · \(live.colorEffects.effect?.title ?? "Effect")" : base
+    }
 
     var body: some View {
         HStack(spacing: 12) {
-            Label(active ? live.mode : sceneName.map { "Scene · \($0)" } ?? "Manual control",
+            Label(title,
                   systemImage: active ? "waveform.path" : sceneName == nil ? "slider.horizontal.3" : "sparkles")
                 .font(.callout.weight(.medium))
             Spacer(minLength: 0)
-            ProgressView().controlSize(.small).opacity(live.isStarting ? 1 : 0)
-                .accessibilityHidden(!live.isStarting)
+            ProgressView().controlSize(.small).opacity(live.isStarting || live.colorEffects.isStarting ? 1 : 0)
+                .accessibilityHidden(!live.isStarting && !live.colorEffects.isStarting)
             if active {
                 ShadcnButton("Stop & restore", variant: .secondary, size: .small) {
                     Task { await live.stop(restore: true) }

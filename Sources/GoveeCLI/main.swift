@@ -17,6 +17,7 @@ Govee Mac CLI — controls the running app over a private local socket.
   govee scenes [--device …]               Download/cache model-specific library
   govee scene NAME_OR_ID [--device …]     Run a native Govee scene
   govee effect rainbow|breathe|candle|ocean|aurora|sunset|colorCycle [--speed 1]
+  govee overlay breathe|pulse|flicker|off [--speed 1]  Motion over existing colors/scenes
   govee music [--source system|microphone] [--sensitivity 2]
   govee displays                         Available screen-capture displays
   govee screen [--display ID] [--mapping rows|columns|whole] [--style vivid|average]
@@ -35,7 +36,7 @@ func fail(_ message: String, code: Int32 = 2) -> Never {
 var args = Array(CommandLine.arguments.dropFirst())
 if args.isEmpty || args.contains("--help") || args.first == "help" { print(help); exit(0) }
 var request = ControlRequest(action: args.removeFirst())
-let actions = ["list","status","on","off","brightness","color","temperature","head","presets","preset","scenes","scene","effect","music","displays","screen","stop","import"]
+let actions = ["list","status","on","off","brightness","color","temperature","head","presets","preset","scenes","scene","effect","overlay","music","displays","screen","stop","import"]
 guard actions.contains(request.action) else { fail("Unknown command. Use govee --help.") }
 while !args.isEmpty {
     let arg = args.removeFirst()
@@ -44,7 +45,7 @@ while !args.isEmpty {
     if arg == "--on" { guard request.action == "head" else { fail("--on is only valid with head.") }; request.source = "on"; continue }
     if arg.hasPrefix("--") {
         guard !args.isEmpty else { fail("Missing value for \(arg).") }
-        let allowed = ["--color": ["head"], "--brightness": ["head"], "--source": ["music"], "--speed": ["effect"], "--display": ["screen"], "--sensitivity": ["music"], "--mapping": ["screen"], "--style": ["screen"]]
+        let allowed = ["--color": ["head"], "--brightness": ["head"], "--source": ["music"], "--speed": ["effect","overlay"], "--display": ["screen"], "--sensitivity": ["music"], "--mapping": ["screen"], "--style": ["screen"]]
         if let actions = allowed[arg], !actions.contains(request.action) { fail("\(arg) is not valid with \(request.action).") }
         let value = args.removeFirst()
         switch arg {
@@ -63,7 +64,7 @@ while !args.isEmpty {
     else if request.value == nil { request.value = arg }
     else { fail("Unexpected argument \(arg). Quote names containing spaces.") }
 }
-let requiredValue = ["brightness","color","temperature","preset","scene","effect","import"]
+let requiredValue = ["brightness","color","temperature","preset","scene","effect","overlay","import"]
 if requiredValue.contains(request.action), request.value == nil { fail("Missing value for \(request.action).") }
 if !requiredValue.contains(request.action), request.action != "head", request.value != nil { fail("Unexpected value for \(request.action).") }
 do {

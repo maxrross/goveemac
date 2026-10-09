@@ -20,6 +20,10 @@ struct GoveeMacApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .newItem) { }
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") { store.showsSettings = true }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
             CommandMenu("Lights") {
                 Button("Discover Wi-Fi Lights") { Task { await store.scanLAN() } }
                     .keyboardShortcut("r")
@@ -36,7 +40,6 @@ struct GoveeMacApp: App {
                 Link("Setup & Compatibility", destination: Brand.repository.appendingPathComponent("blob/main/docs/COMPATIBILITY.md"))
             }
         }
-        Settings { SettingsView(store: store).shadcnSurface(glass: false) }
         MenuBarExtra("Govee Mac", systemImage: "lightbulb", isInserted: $showMenuBar) {
             MenuBarView(store: store)
         }

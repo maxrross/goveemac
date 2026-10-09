@@ -10,7 +10,11 @@ extension LightStore {
                 let lights = request.device.map { query in devices.filter { $0.id == query || $0.name.caseInsensitiveCompare(query) == .orderedSame } } ?? devices
                 guard request.device == nil || lights.count == 1 else { throw ControlError.message("Use an exact, unique light name or ID.") }
                 reply.lights = lights.map(ControlLight.init); reply.mode = live.mode; reply.levels = live.levels; reply.preview = live.preview
-                reply.captureStatus = live.captureStatus; reply.outputFPS = live.outputFPS; reply.beats = live.beatCount; return reply
+                reply.captureStatus = live.captureStatus; reply.outputFPS = live.outputFPS; reply.beats = live.beatCount
+                reply.overlay = live.colorEffects.effect?.rawValue
+                reply.outputBrightness = live.colorEffects.deviceID == nil ? nil : live.colorEffects.outputBrightness
+                reply.nativeScene = lights.count == 1 ? activeScenes[lights[0].id] : nil
+                return reply
             case "presets": reply.presets = presets; return reply
             case "displays": reply.displays = try await CaptureService.displays(); return reply
             case "stop": await live.stop(restore: request.restore ?? false); reply.mode = live.mode; return reply
@@ -50,6 +54,18 @@ extension LightStore {
                     guard heads.map(\.id) == Array(device.heads.indices), !heads.isEmpty else { throw ControlError.message("This preset needs three individually controlled heads.") }
                     commands = [.power(true), .brightness(preset.brightness)] + heads.map(LightCommand.head)
                 } else { commands = [.power(true), .brightness(preset.brightness), preset.temperature > 0 && device.supportsTemperature ? .temperature(preset.temperature) : .color(preset.color)] }
+            case "overlay":
+                if let speed = request.speed {
+                    guard speed.isFinite, (0.1...5).contains(speed) else { throw ControlError.message("Speed must be 0.1–5.") }
+                    live.colorEffects.speed = speed
+                }
+                if request.value == "off" {
+                    if live.colorEffects.deviceID == device.id { await live.colorEffects.stop(restore: true) }
+                } else {
+                    guard let effect = ColorEffect(rawValue: request.value ?? "") else { throw ControlError.message("Overlay must be breathe, pulse, flicker, or off.") }
+                    try await live.colorEffects.start(effect, device: device)
+                }
+                reply.overlay = live.colorEffects.effect?.rawValue; return reply
             case "effect", "music", "screen":
                 if let speed = request.speed { guard speed.isFinite, (0.1...5).contains(speed) else { throw ControlError.message("Speed must be 0.1–5.") }; live.speed = speed }
                 if let source = request.source { guard ["system","microphone"].contains(source) else { throw ControlError.message("Music source must be system or microphone.") }; live.source = source }
@@ -66,7 +82,8 @@ extension LightStore {
                 reply.message = try importLibrary(data: data, model: device.model); return reply
             default: throw ControlError.message("Unknown control action.")
             }
-            await live.stop(restore: false)
+            await live.stopPrimary(restore: false)
+            if request.action == "off", live.colorEffects.deviceID == device.id { await live.colorEffects.stop(restore: true) }
             guard await perform(commands, to: device.id) else { throw ControlError.message(errorMessage ?? "The light did not accept the command.") }
             reply.lights = devices.filter { $0.id == device.id }.map(ControlLight.init)
             reply.message = "Command sent"; return reply

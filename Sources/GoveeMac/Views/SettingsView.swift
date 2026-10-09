@@ -6,8 +6,13 @@ struct SettingsView: View {
     @AppStorage("showMenuBar") private var showMenuBar = true
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.x4) {
+                HStack {
+                    Text("Settings").font(.largeTitle.weight(.semibold))
+                    Spacer()
+                    ShadcnButton("Back to light", systemImage: "chevron.left", variant: .secondary, size: .small) { store.showsSettings = false }
+                }
                 FlatCard {
                     ShadcnCardHeader {
                         ShadcnCardTitle("Govee Mac")
@@ -20,7 +25,7 @@ struct SettingsView: View {
                             ShadcnSwitch(isOn: $showMenuBar).accessibilityLabel("Show quick controls in the menu bar")
                         }
                         ShadcnSeparator()
-                        LabeledContent("Version", value: "0.2.0").font(.callout)
+                        LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development").font(.callout)
                     }
                 }
                 FlatCard {
@@ -32,19 +37,19 @@ struct SettingsView: View {
                             .font(.caption.monospaced()).textSelection(.enabled)
                     }
                 }
-                FlatCard {
-                    ShadcnCardHeader {
-                        ShadcnCardTitle("Community")
-                        ShadcnCardDescription("An independent, community-built project. Not affiliated with Govee. No account or API key required. Govee scene definitions are downloaded on request and cached locally. Screen and audio data stays on your Mac.")
-                    }
+                if let device = store.selectedDevice { FlatCard {
+                    ShadcnCardHeader { ShadcnCardTitle("Light diagnostics") }
                     ShadcnCardContent {
-                        Link("Source code & contributions", destination: Brand.repository)
-                            .buttonStyle(.shadcn(.link, size: .small))
-                        Link("Report an issue", destination: Brand.repository.appendingPathComponent("issues/new/choose"))
-                            .buttonStyle(.shadcn(.link, size: .small))
+                        LabeledContent("Light", value: device.name)
+                        LabeledContent("Model", value: device.model)
+                        LabeledContent("Connection", value: device.usesEncryptedBLE ? "Bluetooth · encrypted session" : device.connection.title)
+                        LabeledContent(device.connection == .lan ? "IP address" : "Identifier") {
+                            Text(device.address).font(.caption.monospaced()).textSelection(.enabled)
+                        }
                     }
-                }
-            }.padding(Space.x6)
-        }.frame(width: 510, height: 600)
+                } }
+            }.padding(Space.x6).frame(maxWidth: 800).frame(maxWidth: .infinity)
+                .background(ScrollIndicatorHider())
+        }.scrollIndicators(.hidden)
     }
 }

@@ -21,6 +21,7 @@ import AppKit
     var outputFPS = 0.0
     var beatCount = 0
     var screenImage: NSImage?
+    let colorEffects = ColorEffectController()
     @ObservationIgnored weak var store: LightStore?
     @ObservationIgnored private var capture = CaptureService()
     @ObservationIgnored private var loop: Task<Void, Never>?
@@ -32,7 +33,7 @@ import AppKit
     @ObservationIgnored private var musicResponse = MusicResponse()
     @ObservationIgnored private var lastAudio = 0.0
     @ObservationIgnored private var lastOutput = 0.0
-    var isRunning: Bool { deviceID != nil }
+    var isRunning: Bool { deviceID != nil || colorEffects.deviceID != nil }
 
     func refreshDisplays() async {
         do { displays = try await CaptureService.displays() }
@@ -130,6 +131,11 @@ import AppKit
         }
     }
     func stop(restore: Bool) async {
+        await colorEffects.stop(restore: true)
+        await stopPrimary(restore: restore)
+    }
+
+    func stopPrimary(restore: Bool) async {
         generation = UUID()
         deviceID = nil; mode = "Stopped"; pending = nil
         hasCaptureInput = false; captureStatus = "Ready"; outputFPS = 0; screenImage = nil

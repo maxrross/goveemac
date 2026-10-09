@@ -11,6 +11,7 @@ final class LightStore {
             if let id = selectedID { defaults.set(id, forKey: "selectedLight") }
         }
     }
+    var showsSettings = false
     var favorites: Set<String> = []
     var customPresets: [LightPreset] = []
     var isScanningLAN = false
@@ -97,10 +98,13 @@ final class LightStore {
             switch data[1] {
             case 0x01:
                 guard data[2] <= 1 else { return }
-                self.devices[index].state.isOn = data[2] == 1
-                self.devices[index].hasKnownState = true
+                let isOn = data[2] == 1
+                if self.devices[index].state.isOn != isOn { self.devices[index].state.isOn = isOn }
+                if !self.devices[index].hasKnownState { self.devices[index].hasKnownState = true }
             case 0x04:
-                self.devices[index].state.brightness = max(1, min(100, percent ? Int(data[2]) : Int((Double(data[2]) / 254 * 100).rounded())))
+                guard self.live.colorEffects.deviceID != self.devices[index].id else { return }
+                let value = max(1, min(100, percent ? Int(data[2]) : Int((Double(data[2]) / 254 * 100).rounded())))
+                if self.devices[index].state.brightness != value { self.devices[index].state.brightness = value }
             case 0x05 where !DeviceCatalog.hasModeOnlyColorReply(model: self.devices[index].model) && data.count >= 6 && [0x02, 0x0D].contains(data[2]):
                 self.devices[index].state.color = RGB(data[3], data[4], data[5])
                 self.devices[index].state.temperature = 0
@@ -109,9 +113,11 @@ final class LightStore {
                 self.devices[index].state.temperature = 0
             default: break
             }
-            self.devices[index].lastSeen = Date()
+            // Connection events track Bluetooth availability. An unchanged
+            // keepalive must not invalidate every row and the selected detail.
         }
         live.store = self
+        live.colorEffects.store = self
     }
 
     func start() async {
@@ -251,6 +257,7 @@ final class LightStore {
         case .status(let state):
             guard let index = devices.firstIndex(where: { $0.address == host && $0.connection == .lan }) else { return }
             var reported = state
+            if live.colorEffects.deviceID == devices[index].id { reported.brightness = devices[index].state.brightness }
             if DeviceCatalog.hasModeOnlyColorReply(model: devices[index].model), state.color == RGB(0, 0, 0), state.temperature == 0 {
                 reported.color = devices[index].state.color
             }
@@ -272,8 +279,11 @@ final class LightStore {
     }
 
     func send(_ command: LightCommand, to id: String, debounce: Bool = false) {
+        if case .power(false) = command, live.colorEffects.deviceID == id {
+            Task { await live.colorEffects.stop(restore: true); self.send(command, to: id, debounce: debounce) }; return
+        }
         if live.deviceID == id {
-            Task { await live.stop(restore: false); self.send(command, to: id, debounce: debounce) }; return
+            Task { await live.stopPrimary(restore: false); self.send(command, to: id, debounce: debounce) }; return
         }
         if case .color = command { cancelHeadEdits(to: id) }
         if case .temperature = command { cancelHeadEdits(to: id) }
@@ -300,7 +310,7 @@ final class LightStore {
         }
     }
 
-    func perform(_ commands: [LightCommand], to id: String, persist: Bool = true, showsBusy: Bool = true) async -> Bool {
+    func perform(_ commands: [LightCommand], to id: String, persist: Bool = true, showsBusy: Bool = true, batchUpdates: Bool = false) async -> Bool {
         let previous = commandTails[id]
         let task = Task { [weak self] in
             await previous?.value
@@ -308,8 +318,9 @@ final class LightStore {
             if showsBusy { self.busyIDs.insert(id) }
             defer { if showsBusy { self.busyIDs.remove(id) } }
             for command in commands {
-                guard await self.execute(command, to: id, persist: persist) else { return false }
+                guard await self.execute(command, to: id, persist: persist, updatesDevice: !batchUpdates) else { return false }
             }
+            if batchUpdates { self.applyToDevice(commands, id: id, persist: persist) }
             return true
         }
         commandTails[id] = Task { _ = await task.value }
@@ -326,10 +337,10 @@ final class LightStore {
         let commands: [LightCommand] = device.heads.isEmpty
             ? [.color(colors.count == 1 ? colors[0] : colors.reduce(colors[0]) { LiveColors.mix($0, $1, amount: 0.5) })]
             : device.heads.map { .head(LightHeadState(id: $0.id, color: colors[$0.id % colors.count], hasRequestedState: true)) }
-        return await perform(commands, to: id, persist: false, showsBusy: false)
+        return await perform(commands, to: id, persist: false, showsBusy: false, batchUpdates: true)
     }
 
-    private func execute(_ command: LightCommand, to id: String, persist: Bool = true) async -> Bool {
+    private func execute(_ command: LightCommand, to id: String, persist: Bool = true, updatesDevice: Bool = true) async -> Bool {
         guard let device = devices.first(where: { $0.id == id }), device.isAvailable else {
             errorMessage = "The light is unavailable. Discover it again or connect over Bluetooth."; return false
         }
@@ -338,41 +349,54 @@ final class LightStore {
             case .lan: try await lan.send(command, to: device.address, model: device.model)
             case .bluetooth: try await bluetooth.send(command, to: device.address, streaming: !persist)
             }
-            if let index = devices.firstIndex(where: { $0.id == id }) {
-                switch command { case .color, .head, .temperature: activeScenes[id] = nil; default: break }
-                devices[index].state = command.applying(to: devices[index].state)
-                switch command {
-                case .head(var head):
-                    guard devices[index].heads.indices.contains(head.id) else { return false }
-                    head.hasRequestedState = true
-                    devices[index].heads[head.id] = head
-                    if persist { persistHeads(for: devices[index]) }
-                case .color(let color):
-                    devices[index].heads = devices[index].heads.map {
-                        LightHeadState(id: $0.id, color: color, hasRequestedState: true)
-                    }
-                    if persist { persistHeads(for: devices[index]) }
-                case .scene(let scene):
-                    activeScenes[id] = scene.name
-                    for headIndex in devices[index].heads.indices { devices[index].heads[headIndex].hasRequestedState = false }
-                    if persist { persistHeads(for: devices[index]) }
-                case .temperature:
-                    for headIndex in devices[index].heads.indices {
-                        devices[index].heads[headIndex].hasRequestedState = false
-                    }
-                    if persist { persistHeads(for: devices[index]) }
-                default: break
-                }
-                // Sending brightness/color cannot establish an unknown power state.
-                if case .power = command { devices[index].hasKnownState = true }
-                devices[index].lastSent = Date()
-            }
+            // Motion output is transient; the editor keeps the user's ceiling
+            // brightness instead of jumping up and down on every pulse.
+            if !persist, case .brightness = command { return true }
+            if updatesDevice { applyToDevice([command], id: id, persist: persist) }
             return true
         } catch { errorMessage = error.localizedDescription; return false }
     }
 
+    private func applyToDevice(_ commands: [LightCommand], id: String, persist: Bool) {
+        guard let index = devices.firstIndex(where: { $0.id == id }) else { return }
+        var updated = devices[index]
+        for command in commands {
+            switch command {
+            case .color, .head, .temperature:
+                if activeScenes[id] != nil { activeScenes[id] = nil }
+            default: break
+            }
+            updated.state = command.applying(to: updated.state)
+            switch command {
+            case .head(var head):
+                guard updated.heads.indices.contains(head.id) else { continue }
+                head.hasRequestedState = true
+                updated.heads[head.id] = head
+            case .color(let color):
+                updated.heads = updated.heads.map {
+                    LightHeadState(id: $0.id, color: color, hasRequestedState: true)
+                }
+            case .scene(let scene):
+                if activeScenes[id] != scene.name { activeScenes[id] = scene.name }
+                for headIndex in updated.heads.indices { updated.heads[headIndex].hasRequestedState = false }
+            case .temperature:
+                for headIndex in updated.heads.indices {
+                    updated.heads[headIndex].hasRequestedState = false
+                }
+            case .brightness(let value):
+                if live.colorEffects.deviceID == id { live.colorEffects.baseBrightness = value }
+            default: break
+            }
+            // Sending brightness/color cannot establish an unknown power state.
+            if case .power = command { updated.hasKnownState = true }
+        }
+        updated.lastSent = Date()
+        devices[index] = updated
+        if persist { persistHeads(for: updated) }
+    }
+
     func apply(_ preset: LightPreset, to id: String) {
-        if live.deviceID == id { Task { await live.stop(restore: false); self.apply(preset, to: id) }; return }
+        if live.deviceID == id { Task { await live.stopPrimary(restore: false); self.apply(preset, to: id) }; return }
         guard let device = devices.first(where: { $0.id == id }) else { return }
         // Cancel stale color edits so a delayed picker event cannot overwrite a preset.
         debounceTasks["\(id):color"]?.cancel()

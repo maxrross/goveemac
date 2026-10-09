@@ -15,9 +15,9 @@ Govee Mac is an independent, open-source macOS app for controlling compatible Go
 
 This is an early community release. Device support varies by model and firmware; please help us build the [compatibility list](docs/COMPATIBILITY.md).
 
-![Equal-height color panels with full-width brightness shortcuts](docs/screenshot-controls.png)
+![Color controls with full-width brightness shortcuts and a compact brightness effect](docs/screenshot-controls.png)
 
-![Mac effects and the H60B2 library using Govee's scene icons](docs/screenshot-scenes.png)
+![The H60B2 scene library with enlarged Govee icons](docs/screenshot-scenes.png)
 
 ## What you can do
 
@@ -27,10 +27,10 @@ This is an early community release. Device support varies by model and firmware;
 - Adjust white temperature over LAN on models that support it.
 - Run native Govee scenes, including all 88 scenes in the H60B2 Tree lamp library.
 - Search scene categories, cache them offline, and import scene-library JSON.
-- Run animated Mac effects with adjustable speed.
+- Add Breathe, Pulse, or Flicker to your current colors or native scene, with adjustable speed.
 - Sync lights to system audio or microphone input, with adjustable sensitivity.
 - Match a display’s colors using whole-screen or per-head regions.
-- Control lights, heads, scenes, and sync from the bundled JSON CLI for agents and scripts.
+- Control lights, heads, scenes, brightness effects, and sync from the bundled JSON CLI for agents and scripts.
 - Apply six built-in looks, or save your own color, brightness, temperature, and mixed-head presets.
 - Rename lights, mark favorites, and control them from the macOS menu bar.
 - Add a light by IPv4 address when multicast discovery is blocked.
@@ -87,7 +87,9 @@ See [CLI & agent control](docs/CLI.md) and [scenes, import, music & screen match
 
 `GoveeKit` contains Sendable value models, LAN/BLE packet codecs, and the legacy session cipher, with no UI or third-party dependencies. `GoveeMac` contains the SwiftUI app, shared observable store, CoreBluetooth service, and a serial-queue UDP transport. Its buttons, switches, sliders, tabs, badges, alerts, inputs, and wrapping layout come from [ShadKit](https://github.com/jasonkneen/ShadKit), a SwiftUI component library based on shadcn/ui. Cards compose ShadKit's header/content/footer components with its palette, border and spacing in a shadow-free `FlatCard` surface. Navigation, empty states, system menus, sheets, and color picking use native macOS components. The app remains entirely Swift. Commands are serialized per light; color-picker and slider edits are debounced and BLE writes respect backpressure. Bluetooth state is queried after manual commands; session keys are kept only in memory and discarded at disconnect.
 
-ShadKit is pinned in `Package.swift` and `Package.resolved` to revision `6dbefdeb72a276708b7ca748c71ac166c0f4f17d`, which includes keyboard and accessibility support for its switches and sliders. Only its `ShadcnUI` product is linked. The standard neutral theme follows the system appearance. Light controls share equal-height panels, circular color swatches, and library inputs and sliders. Brightness shortcuts fill their panel, with two or four columns according to its width. Effect buttons wrap instead of clipping; scene cards use Govee's own icons with neutral fallbacks. Connection details and the lighting status row stay in place. Sending a command does not dim the scene or saved-look grid.
+ShadKit is pinned in `Package.swift` and `Package.resolved` to revision `6dbefdeb72a276708b7ca748c71ac166c0f4f17d`, which includes keyboard and accessibility support for its switches and sliders. Only its `ShadcnUI` product is linked. The standard neutral theme follows the system appearance. Light controls share equal-height panels, circular color swatches, and library inputs and sliders. Brightness shortcuts fill their panel, with two or four columns according to its width. A compact Effect menu adds brightness motion while preserving the current colors, head settings, or native scene program. Scene cards use enlarged Govee icons with neutral fallbacks. The lighting status row stays in place, and sending a command does not dim the scene or saved-look grid. Settings opens in the main window; identifiers are in its diagnostics card, and Disconnect is in the light's sidebar context menu. Scroll indicators are hidden while scrolling remains available.
+
+Unchanged Bluetooth keepalives do not refresh device data. Each streamed three-head frame updates the editor once, and transient brightness effects keep the editor at the user's chosen brightness ceiling. The scene browser depends on the model and availability instead of live RGB values. These changes reduce unnecessary SwiftUI updates; scroll frame timing has not been measured.
 
 The approved standing-lamp icon is included as a source PNG and packaged macOS ICNS. See [the icon source and regeneration instructions](docs/icon-source.md).
 

@@ -53,6 +53,9 @@ struct SidebarView: View {
         .tag(device.id)
         .contextMenu {
             Button(store.favorites.contains(device.id) ? "Remove from Favorites" : "Add to Favorites") { store.toggleFavorite(device.id) }
+            if device.connection == .bluetooth && device.isAvailable {
+                Button("Disconnect") { store.disconnect(device) }
+            }
             Button("Remove Light", role: .destructive) { store.remove(device) }
         }
     }
