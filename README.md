@@ -94,6 +94,8 @@ Page tabs share equal widths, type size, and height. Their buttons compose ShadK
 
 Rename is centered beside the light's title, with the page tabs directly below the header. The selected scene is marked on its card. Sliders hide the rectangular focus highlight while retaining keyboard and accessibility adjustment.
 
+The green shortcuts for the whole lamp and each head send pure green (`#00FF00`), with no red or blue component.
+
 Unchanged Bluetooth keepalives do not refresh device data. Each streamed three-head frame updates the editor once, and transient brightness effects keep the editor at the user's chosen brightness ceiling. The scene browser depends on the model and availability instead of live RGB values. These changes reduce unnecessary SwiftUI updates; scroll frame timing has not been measured.
 
 The approved standing-lamp icon is included as a source PNG and packaged macOS ICNS. See [the icon source and regeneration instructions](docs/icon-source.md).

@@ -26,7 +26,7 @@ private struct HeadControlCard: View {
     @State private var hex: String
     @State private var hexEdited = false
     @State private var editingBrightness = false
-    private let colors = [RGB(255,0,0), RGB(73,200,133), RGB(36,165,255), RGB(174,107,255)]
+    private let colors = [RGB(255,0,0), RGB(0,255,0), RGB(36,165,255), RGB(174,107,255)]
     init(store: LightStore, device: LightDevice, head: LightHeadState) {
         self.store = store; self.device = device; self.head = head
         _draft = State(initialValue: head); _hex = State(initialValue: head.color.hex)

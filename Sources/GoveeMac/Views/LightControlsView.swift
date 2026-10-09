@@ -12,7 +12,7 @@ struct LightControlsView: View {
     @State private var white = false
     @State private var hex = ""
     @State private var hexEdited = false
-    private let swatches: [RGB] = [RGB(255,86,76), RGB(255,167,64), RGB(250,218,82), RGB(73,200,133), RGB(40,185,205), RGB(68,132,250), RGB(165,104,250), RGB(247,119,191)]
+    private let swatches: [RGB] = [RGB(255,86,76), RGB(255,167,64), RGB(250,218,82), RGB(0,255,0), RGB(40,185,205), RGB(68,132,250), RGB(165,104,250), RGB(247,119,191)]
     var body: some View {
         EqualHeightColumns {
             ControlPanel(fillsHeight: true) {
